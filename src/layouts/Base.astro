@@ -10,8 +10,24 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { SITE_NAME } from '../lib/site';
 import { getSiteContent } from '../lib/content';
+import { fontStack, googleFontsHref, DEFAULT_DISPLAY, DEFAULT_BODY } from '../lib/fonts';
 
 const site = await getSiteContent();
+
+// Tipografías configurables: se sobreescriben los tokens --font-* del @theme
+// con un style inline en <html> (gana a la hoja de estilos por especificidad).
+const fontsHref = googleFontsHref([site.fontDisplay, site.fontBody, site.fontHero]);
+const rootVars: string[] = [];
+if (site.fontDisplay && site.fontDisplay !== DEFAULT_DISPLAY) {
+  rootVars.push(`--font-display: ${fontStack(site.fontDisplay)}`);
+}
+if (site.fontBody && site.fontBody !== DEFAULT_BODY) {
+  rootVars.push(`--font-sans: ${fontStack(site.fontBody)}`);
+}
+const htmlStyle = rootVars.length ? rootVars.join('; ') : undefined;
+const heroCss = site.fontHero
+  ? `[data-hero] h1 { font-family: ${fontStack(site.fontHero)}; }`
+  : null;
 
 interface Props {
   title: string;
@@ -64,7 +80,7 @@ const identityLd = JSON.stringify([
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" style={htmlStyle}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -95,6 +111,16 @@ const identityLd = JSON.stringify([
     <script is:inline type="application/ld+json" set:html={identityLd} />
 
     <link rel="preload" href={cormorantWoff2} as="font" type="font/woff2" crossorigin />
+    {
+      fontsHref && (
+        <>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+          <link rel="stylesheet" href={fontsHref} />
+        </>
+      )
+    }
+    {heroCss && <style set:html={heroCss} />}
 
     <script is:inline>
       // Antes del primer paint: marca JS disponible (gatea los estados

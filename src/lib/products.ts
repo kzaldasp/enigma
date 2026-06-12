@@ -2,6 +2,7 @@ import { db, cached } from './db';
 import type { Category } from './site';
 
 export type ProductSize = { size: string; stock: number | null };
+export type ProductMedia = { url: string; type: 'image' | 'video' };
 
 export type Product = {
   id: number;
@@ -10,7 +11,9 @@ export type Product = {
   price: number;
   description: string;
   sizes: ProductSize[];
-  /** URLs absolutas (Cloudinary) o relativas a public/ (seed inicial). */
+  /** Imágenes y videos cortos en orden; URLs absolutas o relativas a public/. */
+  media: ProductMedia[];
+  /** Solo las imágenes (para OG, JSON-LD y miniaturas de carrito). */
   images: string[];
   category: Category;
   /** Texto libre desde el admin; 'AGOTADO' bloquea compra, 'NUEVO' destaca. */
@@ -30,15 +33,20 @@ export async function getProducts(): Promise<Product[]> {
   return cached('products', async () => {
     const [products, images, sizes] = await Promise.all([
       db().execute('SELECT * FROM products WHERE active = 1 ORDER BY sort_order, id'),
-      db().execute('SELECT product_id, url FROM product_images ORDER BY product_id, position'),
+      db().execute(
+        'SELECT product_id, url, type FROM product_images ORDER BY product_id, position',
+      ),
       db().execute('SELECT product_id, size, stock FROM product_sizes ORDER BY product_id, position'),
     ]);
 
-    const imagesBy = new Map<number, string[]>();
+    const mediaBy = new Map<number, ProductMedia[]>();
     for (const r of images.rows) {
       const pid = Number(r.product_id);
-      if (!imagesBy.has(pid)) imagesBy.set(pid, []);
-      imagesBy.get(pid)!.push(String(r.url));
+      if (!mediaBy.has(pid)) mediaBy.set(pid, []);
+      mediaBy.get(pid)!.push({
+        url: String(r.url),
+        type: String(r.type ?? 'image') === 'video' ? 'video' : 'image',
+      });
     }
     const sizesBy = new Map<number, ProductSize[]>();
     for (const r of sizes.rows) {
@@ -54,6 +62,7 @@ export async function getProducts(): Promise<Product[]> {
       const id = Number(p.id);
       const badge = p.badge ? String(p.badge) : null;
       const productSizes = sizesBy.get(id) ?? [];
+      const media = mediaBy.get(id) ?? [];
       return {
         id,
         slug: String(p.slug),
@@ -61,7 +70,8 @@ export async function getProducts(): Promise<Product[]> {
         price: Number(p.price),
         description: String(p.description ?? ''),
         sizes: productSizes,
-        images: imagesBy.get(id) ?? [],
+        media,
+        images: media.filter((m) => m.type === 'image').map((m) => m.url),
         category: String(p.category) as Category,
         badge,
         soldOut: computeSoldOut(badge, productSizes),

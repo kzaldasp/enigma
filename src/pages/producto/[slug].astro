@@ -14,7 +14,7 @@ if (!product) {
 
 const products = await getProducts();
 const site = await getSiteContent();
-const { title, price, description, sizes, images, category, soldOut } = product;
+const { title, price, description, sizes, media, images, category, soldOut } = product;
 const related = pickRelated(products, product, 4);
 const badge = soldOut ? 'AGOTADO' : product.badge;
 const catLabel = await categoryLabel(category);
@@ -77,15 +77,27 @@ const jsonLd = JSON.stringify([
         <!-- Galería vertical: scroll natural, sin carrusel -->
         <div class="flex flex-col gap-6">
           {
-            images.map((img, i) => (
-              <img
-                src={img}
-                alt={i === 0 ? `${title}, vista de la pieza` : `${title}, pieza en modelo`}
-                class="w-full"
-                loading={i === 0 ? 'eager' : 'lazy'}
-                fetchpriority={i === 0 ? 'high' : undefined}
-              />
-            ))
+            media.map((m, i) =>
+              m.type === 'video' ? (
+                <video
+                  src={m.url}
+                  class="w-full"
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  aria-label={`${title}, video de la pieza`}
+                />
+              ) : (
+                <img
+                  src={m.url}
+                  alt={i === 0 ? `${title}, vista de la pieza` : `${title}, pieza en modelo`}
+                  class="w-full"
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={i === 0 ? 'high' : undefined}
+                />
+              ),
+            )
           }
         </div>
 
@@ -96,7 +108,7 @@ const jsonLd = JSON.stringify([
           data-product-slug={product.slug}
           data-product-title={title}
           data-product-price={price}
-          data-product-image={images[0]}
+          data-product-image={images[0] ?? media[0]?.url ?? ''}
         >
           {badge && <p class={`caps mb-4 ${soldOut ? 'text-stone' : ''}`}>{badge}</p>}
           <h1 class="font-display text-product tracking-display">{title}</h1>

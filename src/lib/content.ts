@@ -18,6 +18,10 @@ export type SiteContent = {
   shippingText: string;
   returnsText: string;
   bankDetails: string;
+  /** Tipografías (Contenido → Tipografía). Vacío en fontHero = heredar. */
+  fontDisplay: string;
+  fontBody: string;
+  fontHero: string;
 };
 
 const DEFAULTS: Record<string, string> = {
@@ -37,6 +41,9 @@ const DEFAULTS: Record<string, string> = {
   returns_text:
     'Tienes 15 días desde la entrega para cambios de talla, con la pieza sin uso y en su empaque. Las piezas agotadas no se reservan.',
   bank_details: '',
+  font_display: 'Cormorant Garamond',
+  font_body: 'Inter',
+  font_hero: '',
 };
 
 export async function getSiteContent(): Promise<SiteContent> {
@@ -64,6 +71,9 @@ export async function getSiteContent(): Promise<SiteContent> {
       shippingText: map.shipping_text,
       returnsText: map.returns_text,
       bankDetails: map.bank_details,
+      fontDisplay: map.font_display,
+      fontBody: map.font_body,
+      fontHero: map.font_hero,
     } satisfies SiteContent;
   });
 }

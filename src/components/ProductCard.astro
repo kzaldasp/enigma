@@ -9,11 +9,11 @@ interface Props {
 }
 
 const { product, eager = false } = Astro.props;
-const { slug, title, price, images, category, soldOut } = product;
+const { slug, title, price, media, category, soldOut } = product;
 const badge = soldOut ? 'AGOTADO' : product.badge;
 
-const front = images[0];
-const alternate = images[1] ?? null;
+const front = media[0];
+const alternate = media[1] ?? null;
 ---
 
 <a
@@ -24,22 +24,47 @@ const alternate = images[1] ?? null;
   aria-label={`${title} — ${formatPrice(price)}`}
 >
   <div class="relative aspect-[3/4] overflow-hidden">
-    <img
-      src={front}
-      alt={`${title}, vista de la pieza`}
-      class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
-      loading={eager ? 'eager' : 'lazy'}
-    />
     {
-      alternate && (
+      front?.type === 'video' ? (
+        <video
+          src={front.url}
+          class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
+          autoplay
+          muted
+          loop
+          playsinline
+          aria-label={`${title}, video de la pieza`}
+        />
+      ) : (
         <img
-          src={alternate}
-          alt=""
-          aria-hidden="true"
-          class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-          loading="lazy"
+          src={front?.url}
+          alt={`${title}, vista de la pieza`}
+          class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
+          loading={eager ? 'eager' : 'lazy'}
         />
       )
+    }
+    {
+      alternate &&
+        (alternate.type === 'video' ? (
+          <video
+            src={alternate.url}
+            class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            autoplay
+            muted
+            loop
+            playsinline
+            aria-hidden="true"
+          />
+        ) : (
+          <img
+            src={alternate.url}
+            alt=""
+            aria-hidden="true"
+            class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            loading="lazy"
+          />
+        ))
     }
     {
       badge && (
