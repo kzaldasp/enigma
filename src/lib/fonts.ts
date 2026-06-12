@@ -28,13 +28,25 @@ export const FONT_CATALOG: Record<string, FontDef> = {
 export const DEFAULT_DISPLAY = 'Cormorant Garamond';
 export const DEFAULT_BODY = 'Inter';
 
-/** Pila CSS con fallback acorde a la familia. */
-export function fontStack(name: string): string {
+/**
+ * Pila CSS con fallback acorde a la familia. Para fuentes fuera del catálogo
+ * (importadas con URL de Google), el fallback lo decide el rol donde se usa.
+ */
+export function fontStack(name: string, role: 'display' | 'body' = 'display'): string {
   const def = FONT_CATALOG[name];
-  const fallback = def?.serif === false
-    ? 'system-ui, ui-sans-serif, sans-serif'
-    : 'Georgia, "Times New Roman", serif';
+  const serif = def ? def.serif : role === 'display';
+  const fallback = serif
+    ? 'Georgia, "Times New Roman", serif'
+    : 'system-ui, ui-sans-serif, sans-serif';
   return `"${name}", ${fallback}`;
+}
+
+/** Solo URLs css2 de Google Fonts — evita inyectar estilos arbitrarios. */
+export function sanitizeFontUrl(url: string): string | null {
+  const trimmed = url.trim();
+  return /^https:\/\/fonts\.googleapis\.com\/css2\?[\w+&;=:,@%-]+$/.test(trimmed)
+    ? trimmed
+    : null;
 }
 
 /** URL de Google Fonts para las fuentes no-default seleccionadas (o null). */

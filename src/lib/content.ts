@@ -22,6 +22,8 @@ export type SiteContent = {
   fontDisplay: string;
   fontBody: string;
   fontHero: string;
+  /** URL css2 de Google Fonts pegada en el admin (fuentes fuera del catálogo). */
+  fontCustomUrl: string;
 };
 
 const DEFAULTS: Record<string, string> = {
@@ -44,6 +46,7 @@ const DEFAULTS: Record<string, string> = {
   font_display: 'Cormorant Garamond',
   font_body: 'Inter',
   font_hero: '',
+  font_custom_url: '',
 };
 
 export async function getSiteContent(): Promise<SiteContent> {
@@ -74,6 +77,7 @@ export async function getSiteContent(): Promise<SiteContent> {
       fontDisplay: map.font_display,
       fontBody: map.font_body,
       fontHero: map.font_hero,
+      fontCustomUrl: map.font_custom_url,
     } satisfies SiteContent;
   });
 }

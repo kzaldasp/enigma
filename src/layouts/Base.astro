@@ -10,23 +10,31 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { SITE_NAME } from '../lib/site';
 import { getSiteContent } from '../lib/content';
-import { fontStack, googleFontsHref, DEFAULT_DISPLAY, DEFAULT_BODY } from '../lib/fonts';
+import {
+  fontStack,
+  googleFontsHref,
+  sanitizeFontUrl,
+  DEFAULT_DISPLAY,
+  DEFAULT_BODY,
+} from '../lib/fonts';
 
 const site = await getSiteContent();
 
 // Tipografías configurables: se sobreescriben los tokens --font-* del @theme
 // con un style inline en <html> (gana a la hoja de estilos por especificidad).
 const fontsHref = googleFontsHref([site.fontDisplay, site.fontBody, site.fontHero]);
+// Fuentes fuera del catálogo: URL css2 pegada en el admin (solo Google Fonts).
+const customFontsHref = site.fontCustomUrl ? sanitizeFontUrl(site.fontCustomUrl) : null;
 const rootVars: string[] = [];
 if (site.fontDisplay && site.fontDisplay !== DEFAULT_DISPLAY) {
-  rootVars.push(`--font-display: ${fontStack(site.fontDisplay)}`);
+  rootVars.push(`--font-display: ${fontStack(site.fontDisplay, 'display')}`);
 }
 if (site.fontBody && site.fontBody !== DEFAULT_BODY) {
-  rootVars.push(`--font-sans: ${fontStack(site.fontBody)}`);
+  rootVars.push(`--font-sans: ${fontStack(site.fontBody, 'body')}`);
 }
 const htmlStyle = rootVars.length ? rootVars.join('; ') : undefined;
 const heroCss = site.fontHero
-  ? `[data-hero] h1 { font-family: ${fontStack(site.fontHero)}; }`
+  ? `[data-hero] h1 { font-family: ${fontStack(site.fontHero, 'display')}; }`
   : null;
 
 interface Props {
@@ -112,11 +120,12 @@ const identityLd = JSON.stringify([
 
     <link rel="preload" href={cormorantWoff2} as="font" type="font/woff2" crossorigin />
     {
-      fontsHref && (
+      (fontsHref || customFontsHref) && (
         <>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-          <link rel="stylesheet" href={fontsHref} />
+          {fontsHref && <link rel="stylesheet" href={fontsHref} />}
+          {customFontsHref && <link rel="stylesheet" href={customFontsHref} />}
         </>
       )
     }

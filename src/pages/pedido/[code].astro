@@ -21,39 +21,84 @@ const items = await db().execute({
 
 const site = await getSiteContent();
 const status = String(order.status);
+const fulfillment = order.fulfillment ? String(order.fulfillment) : null;
+const trackingNote = order.tracking_note ? String(order.tracking_note) : null;
 const fmt = (n: number) => `$${n.toFixed(2)} USD`;
 
-const STATUS_COPY: Record<string, { title: string; text: string }> = {
-  pendiente: {
-    title: 'PEDIDO RECIBIDO',
-    text: 'Haz la transferencia con los datos de abajo y sube el comprobante para confirmar tu compra.',
-  },
-  comprobante_subido: {
-    title: 'COMPROBANTE EN REVISIÓN',
-    text: 'Recibimos tu comprobante. Lo validamos en horas laborables y te contactamos por WhatsApp.',
-  },
-  validado: {
-    title: 'PAGO CONFIRMADO',
-    text: 'Tu pago fue validado. Preparamos tu pedido y te contactamos para coordinar la entrega.',
-  },
-  rechazado: {
-    title: 'PEDIDO RECHAZADO',
-    text: 'No pudimos validar el pago. Escríbenos por WhatsApp para resolverlo.',
-  },
-};
-const copy = STATUS_COPY[status] ?? STATUS_COPY.pendiente;
-const canUpload = status === 'pendiente' || status === 'comprobante_subido';
+const rejected = status === 'rechazado';
+
+/**
+ * Trazabilidad: 6 pasos. El índice del paso actual se deriva del estado
+ * de pago (status) y del estado de envío (fulfillment).
+ */
+const FULFILLMENT_ORDER = ['preparando', 'enviado', 'entregado'];
+let currentStep = 0; // PEDIDO RECIBIDO
+if (status === 'comprobante_subido') currentStep = 1;
+if (status === 'validado') currentStep = 2;
+if (status === 'validado' && fulfillment) {
+  currentStep = 3 + FULFILLMENT_ORDER.indexOf(fulfillment);
+}
+
+const STEPS = [
+  { title: 'PEDIDO RECIBIDO', text: 'Recibimos tu pedido y reservamos tus piezas.' },
+  { title: 'COMPROBANTE EN REVISIÓN', text: 'Validamos tu transferencia en horas laborables.' },
+  { title: 'PAGO CONFIRMADO', text: 'Tu pago fue validado.' },
+  { title: 'PREPARANDO TU PEDIDO', text: 'Estamos empacando tus piezas.' },
+  { title: 'ENVIADO', text: trackingNote ?? 'Tu pedido va en camino.' },
+  { title: 'ENTREGADO', text: 'Gracias por llevar ENIGMA.' },
+];
+
+const headline = rejected
+  ? 'PEDIDO RECHAZADO'
+  : STEPS[currentStep].title;
+const headText = rejected
+  ? 'No pudimos validar el pago. Escríbenos por WhatsApp para resolverlo.'
+  : currentStep === 0
+    ? 'Haz la transferencia con los datos de abajo y sube el comprobante para confirmar tu compra.'
+    : STEPS[currentStep].text;
+
+// El formulario de subida SOLO aparece antes de subir el primer comprobante.
+const showBankAndUpload = status === 'pendiente';
 ---
 
 <Base title={`Pedido ${order.code} — ENIGMA®`} description="Estado de tu pedido." noindex>
   <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
     <div class="wrap max-w-3xl">
       <p class="caps text-stone" data-reveal>PEDIDO {order.code}</p>
-      <h1 class="mt-3 font-display text-section tracking-display" data-reveal>{copy.title}</h1>
-      <p class="mt-6 max-w-xl text-stone" data-reveal>{copy.text}</p>
+      <h1 class="mt-3 font-display text-section tracking-display" data-reveal>{headline}</h1>
+      <p class="mt-6 max-w-xl text-stone" data-reveal>{headText}</p>
+
+      {
+        /* Trazabilidad: línea de tiempo tipo hairline */
+        !rejected && (
+          <ol class="mt-14 border-l border-line" data-reveal aria-label="Estado del pedido">
+            {STEPS.map((step, i) => {
+              const done = i < currentStep;
+              const current = i === currentStep;
+              return (
+                <li class="relative pb-8 pl-8 last:pb-0">
+                  <span
+                    class={`absolute top-0.5 -left-[5px] block h-[9px] w-[9px] rounded-full border ${
+                      done || current ? 'border-ink bg-ink' : 'border-line bg-bone'
+                    } ${current ? 'outline outline-1 outline-offset-4 outline-ink' : ''}`}
+                    aria-hidden="true"
+                  />
+                  <p class={`caps ${done || current ? '' : 'text-stone'}`}>
+                    {step.title}
+                    {current && <span class="text-stone"> — AHORA</span>}
+                  </p>
+                  {(current || (i === 4 && trackingNote && done)) && (
+                    <p class="mt-1 max-w-md text-sm text-stone">{step.text}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )
+      }
 
       <!-- Resumen -->
-      <div class="mt-12 border-t border-line" data-reveal>
+      <div class="mt-14 border-t border-line" data-reveal>
         {
           items.rows.map((it) => (
             <div class="flex justify-between gap-4 border-b border-line py-4">
@@ -72,7 +117,7 @@ const canUpload = status === 'pendiente' || status === 'comprobante_subido';
       </div>
 
       {
-        canUpload && (
+        showBankAndUpload && (
           <>
             <div class="mt-12 bg-ink p-8 text-bone" data-reveal>
               <h2 class="caps">DATOS PARA LA TRANSFERENCIA</h2>
@@ -84,11 +129,7 @@ const canUpload = status === 'pendiente' || status === 'comprobante_subido';
 
             <form id="receipt-form" class="mt-12" data-reveal>
               <input type="hidden" name="code" value={String(order.code)} />
-              <h2 class="caps">
-                {status === 'comprobante_subido'
-                  ? 'SUBIR OTRO COMPROBANTE'
-                  : 'SUBE TU COMPROBANTE'}
-              </h2>
+              <h2 class="caps">SUBE TU COMPROBANTE</h2>
               <label for="receipt-file" class="caps mt-4 block text-stone">
                 Foto o captura de la transferencia (máx. 8 MB)
               </label>
@@ -104,6 +145,14 @@ const canUpload = status === 'pendiente' || status === 'comprobante_subido';
               <button type="submit" class="btn btn-ink mt-6">ENVIAR COMPROBANTE</button>
             </form>
           </>
+        )
+      }
+
+      {
+        status === 'comprobante_subido' && (
+          <p class="caps mt-12 text-stone" data-reveal>
+            RECIBIMOS TU COMPROBANTE — TE AVISAMOS POR WHATSAPP CUANDO ESTÉ VALIDADO.
+          </p>
         )
       }
 
@@ -124,7 +173,7 @@ const canUpload = status === 'pendiente' || status === 'comprobante_subido';
       }
 
       <p class="caps mt-4 text-stone" data-reveal>
-        GUARDA ESTE ENLACE PARA VER EL ESTADO DE TU PEDIDO.
+        GUARDA ESTE ENLACE PARA SEGUIR TU PEDIDO.
       </p>
     </div>
   </section>

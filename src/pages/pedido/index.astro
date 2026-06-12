@@ -1,0 +1,46 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base
+  title="Sigue tu pedido — ENIGMA®"
+  description="Ingresa el código de tu pedido para ver su estado."
+  noindex
+>
+  <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
+    <div class="wrap max-w-3xl">
+      <h1 class="font-display text-section tracking-display" data-reveal>Sigue tu pedido</h1>
+      <p class="mt-6 max-w-md text-stone" data-reveal>
+        El código te llegó al confirmar la compra (empieza con ENG-). También te lo
+        podemos reenviar por WhatsApp.
+      </p>
+
+      <form id="track-form" class="mt-12 flex max-w-md items-end gap-6" data-reveal>
+        <div class="flex-1">
+          <label for="track-code" class="caps text-stone">Código del pedido</label>
+          <input
+            id="track-code"
+            name="code"
+            required
+            placeholder="ENG-XXXXX"
+            autocomplete="off"
+            class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body uppercase placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+          />
+        </div>
+        <button type="submit" class="u-link caps min-h-11 shrink-0">VER ESTADO</button>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const form = document.getElementById('track-form') as HTMLFormElement | null;
+      form?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = form.querySelector<HTMLInputElement>('#track-code');
+        const code = input?.value.trim().toUpperCase();
+        if (code) window.location.href = `/pedido/${encodeURIComponent(code)}`;
+      });
+    });
+  </script>
+</Base>

@@ -1,0 +1,129 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import CampaignEditorial from '../../components/CampaignEditorial.astro';
+import { campaignImage } from '../../lib/images';
+import { getCampaigns } from '../../lib/campaigns';
+
+/**
+ * Lookbook: muestra la campaña publicada más reciente (admin → Campañas).
+ * Las campañas anteriores quedan enlazadas abajo como archivo editorial.
+ * Sin campañas publicadas, cae al editorial estático original.
+ */
+const campaigns = await getCampaigns();
+const current = campaigns.find((c) => c.items.length > 0);
+const others = current ? campaigns.filter((c) => c.id !== current.id && c.items.length > 0) : [];
+
+// Fallback estático (el editorial original) si no hay campañas en la DB.
+const staticLooks = [
+  { key: 'lookbook-01', piece: 'HOODIE UMBRAL', slug: 'hoodie-umbral', width: 'lg:w-[52%]', align: 'lg:self-start' },
+  { key: 'lookbook-02', piece: 'PANTALÓN MARGEN', slug: 'pantalon-margen', width: 'lg:w-[40%]', align: 'lg:self-end' },
+  { key: 'lookbook-03', piece: 'CHAQUETA REVERSO', slug: 'chaqueta-reverso', width: 'lg:w-[78%]', align: 'lg:self-center' },
+  { key: 'lookbook-04', piece: 'DENIM SOMBRA', slug: 'denim-sombra', width: 'lg:w-[44%]', align: 'lg:self-start' },
+  { key: 'lookbook-05', piece: 'CAMISETA CIFRA', slug: 'camiseta-cifra', width: 'lg:w-[50%]', align: 'lg:self-end' },
+  { key: 'lookbook-06', piece: 'TOTE ARCHIVO', slug: 'tote-archivo', width: 'lg:w-[72%]', align: 'lg:self-center' },
+];
+
+const title = current ? `${current.title} — ENIGMA®` : 'Lookbook — ENIGMA®';
+const description = current?.description
+  ?? 'Lookbook de ENIGMA. La colección puesta, sin retoque y sin discurso.';
+---
+
+<Base title={title} description={description} headerTheme="dark">
+  <section class="bg-ink pt-36 pb-section text-bone md:pt-48">
+    <div class="wrap">
+      <header class="max-w-2xl" data-lines>
+        <p class="caps mb-6 text-stone" data-reveal>
+          {current?.seasonLine ?? 'VERANO 2026 — EDITORIAL'}
+        </p>
+        <h1 class="font-display text-section tracking-display">
+          <span data-line><span class="line-in">{current?.title ?? 'Lookbook'}</span></span>
+        </h1>
+        {
+          current?.description && (
+            <p class="mt-6 max-w-md text-stone" data-reveal>
+              {current.description}
+            </p>
+          )
+        }
+      </header>
+
+      {
+        current ? (
+          <CampaignEditorial campaign={current} />
+        ) : (
+          <div class="mt-[var(--spacing-section-sm)] flex flex-col gap-[var(--spacing-section-sm)] lg:gap-[var(--spacing-section)]">
+            {staticLooks.map((look, i) => {
+              const img = campaignImage(look.key);
+              const portrait = img.height > img.width;
+              return (
+                <figure class={`flex w-full flex-col ${look.width} ${look.align}`} data-reveal>
+                  <div class={`parallax-frame ${portrait ? 'aspect-[3/4]' : 'aspect-[3/2]'}`}>
+                    <Image
+                      src={img}
+                      alt={`Look ${String(i + 1).padStart(2, '0')}: ${look.piece.toLowerCase()} en modelo`}
+                      data-parallax
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                    />
+                  </div>
+                  <figcaption class="mt-4 flex items-baseline justify-between gap-4">
+                    <span class="caps text-stone">
+                      LOOK {String(i + 1).padStart(2, '0')} — {look.piece}
+                    </span>
+                    <a href={`/producto/${look.slug}`} class="u-link caps shrink-0">
+                      VER PIEZA →
+                    </a>
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+        )
+      }
+
+      {
+        others.length > 0 && (
+          <aside class="mt-[var(--spacing-section)]" aria-label="Campañas anteriores">
+            <h2 class="caps text-stone" data-reveal>
+              CAMPAÑAS ANTERIORES
+            </h2>
+            <div class="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-4" data-reveal-group>
+              {others.map((c) => {
+                const cover = c.items[0];
+                return (
+                  <a href={`/lookbook/${c.slug}`} class="group block" data-reveal-item>
+                    <div class="zoom-frame aspect-[3/4]">
+                      {cover.type === 'video' ? (
+                        <video
+                          src={cover.url}
+                          class="h-full w-full object-cover"
+                          autoplay
+                          muted
+                          loop
+                          playsinline
+                        />
+                      ) : (
+                        <img
+                          src={cover.url}
+                          alt={`Campaña ${c.title}`}
+                          class="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between gap-4">
+                      <h3 class="caps">
+                        <span class="u-link">{c.title}</span>
+                      </h3>
+                      {c.seasonLine && <span class="caps shrink-0 text-stone">{c.seasonLine}</span>}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </aside>
+        )
+      }
+    </div>
+  </section>
+</Base>

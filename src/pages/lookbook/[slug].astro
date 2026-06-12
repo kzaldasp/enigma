@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+import CampaignEditorial from '../../components/CampaignEditorial.astro';
+import { getCampaignBySlug } from '../../lib/campaigns';
+
+const { slug } = Astro.params;
+const campaign = slug ? await getCampaignBySlug(slug) : undefined;
+if (!campaign || campaign.items.length === 0) {
+  return Astro.redirect('/lookbook');
+}
+---
+
+<Base
+  title={`${campaign.title} — ENIGMA®`}
+  description={campaign.description ?? `Campaña ${campaign.title} de ENIGMA.`}
+  headerTheme="dark"
+>
+  <section class="bg-ink pt-36 pb-section text-bone md:pt-48">
+    <div class="wrap">
+      <nav aria-label="Miga de pan" class="caps mb-10 flex gap-3 text-stone" data-reveal>
+        <a href="/lookbook" class="u-link">LOOKBOOK</a>
+        <span aria-hidden="true">/</span>
+        <span>{campaign.title.toUpperCase()}</span>
+      </nav>
+
+      <header class="max-w-2xl" data-lines>
+        {
+          campaign.seasonLine && (
+            <p class="caps mb-6 text-stone" data-reveal>
+              {campaign.seasonLine}
+            </p>
+          )
+        }
+        <h1 class="font-display text-section tracking-display">
+          <span data-line><span class="line-in">{campaign.title}</span></span>
+        </h1>
+        {
+          campaign.description && (
+            <p class="mt-6 max-w-md text-stone" data-reveal>
+              {campaign.description}
+            </p>
+          )
+        }
+      </header>
+
+      <CampaignEditorial campaign={campaign} />
+    </div>
+  </section>
+</Base>

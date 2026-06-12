@@ -1,0 +1,70 @@
+---
+import type { Campaign } from '../lib/campaigns';
+
+/**
+ * Recorrido editorial de una campaña: anchos distintos, alineación
+ * alternada, parallax en fotos y captions tipo museo — el mismo
+ * lenguaje del lookbook original, alimentado desde el admin.
+ */
+interface Props {
+  campaign: Campaign;
+}
+
+const { campaign } = Astro.props;
+
+const LAYOUT = [
+  { width: 'lg:w-[52%]', align: 'lg:self-start', aspect: 'aspect-[3/4]' },
+  { width: 'lg:w-[40%]', align: 'lg:self-end', aspect: 'aspect-[3/4]' },
+  { width: 'lg:w-[78%]', align: 'lg:self-center', aspect: 'aspect-[3/2]' },
+  { width: 'lg:w-[44%]', align: 'lg:self-start', aspect: 'aspect-[3/4]' },
+  { width: 'lg:w-[50%]', align: 'lg:self-end', aspect: 'aspect-[3/4]' },
+  { width: 'lg:w-[72%]', align: 'lg:self-center', aspect: 'aspect-[3/2]' },
+];
+---
+
+<div class="mt-[var(--spacing-section-sm)] flex flex-col gap-[var(--spacing-section-sm)] lg:gap-[var(--spacing-section)]">
+  {
+    campaign.items.map((item, i) => {
+      const layout = LAYOUT[i % LAYOUT.length];
+      return (
+        <figure class={`flex w-full flex-col ${layout.width} ${layout.align}`} data-reveal>
+          <div class={`parallax-frame ${layout.aspect}`}>
+            {item.type === 'video' ? (
+              <video
+                src={item.url}
+                class="absolute inset-0 h-full w-full object-cover"
+                autoplay
+                muted
+                loop
+                playsinline
+                aria-label={item.caption ?? `Look ${String(i + 1).padStart(2, '0')}`}
+              />
+            ) : (
+              <img
+                src={item.url}
+                alt={
+                  item.caption
+                    ? `Look ${String(i + 1).padStart(2, '0')}: ${item.caption.toLowerCase()}`
+                    : `Look ${String(i + 1).padStart(2, '0')} de ${campaign.title}`
+                }
+                data-parallax
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+            )}
+          </div>
+          <figcaption class="mt-4 flex items-baseline justify-between gap-4">
+            <span class="caps text-stone">
+              LOOK {String(i + 1).padStart(2, '0')}
+              {item.caption ? ` — ${item.caption}` : ''}
+            </span>
+            {item.link && (
+              <a href={item.link} class="u-link caps shrink-0">
+                VER PIEZA →
+              </a>
+            )}
+          </figcaption>
+        </figure>
+      );
+    })
+  }
+</div>
