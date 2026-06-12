@@ -1,0 +1,36 @@
+---
+import { Image } from 'astro:assets';
+import { CATEGORIES, CATEGORY_LABELS } from '../lib/site';
+import { categoryImage } from '../lib/images';
+---
+
+<section class="bg-bone py-section text-ink" aria-label="Categorías">
+  <div class="wrap">
+    <div class="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3" data-reveal-group>
+      {
+        CATEGORIES.map((category, i) => (
+          <a
+            href={`/catalogo?categoria=${category}`}
+            class="group block"
+            data-reveal-item
+          >
+            <div class="zoom-frame aspect-[4/5]">
+              <Image
+                src={categoryImage(category)}
+                alt={`Categoría ${CATEGORY_LABELS[category].toLowerCase()}`}
+                class="h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            <div class="mt-4 flex items-baseline justify-between">
+              <h3 class="caps">
+                <span class="u-link">{CATEGORY_LABELS[category]}</span>
+              </h3>
+              <span class="caps text-stone">0{i + 1}</span>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</section>

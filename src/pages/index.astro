@@ -1,0 +1,30 @@
+---
+import Base from '../layouts/Base.astro';
+import Preloader from '../components/Preloader.astro';
+import Hero from '../components/Hero.astro';
+import Novedades from '../components/Novedades.astro';
+import Editorial from '../components/Editorial.astro';
+import Categorias from '../components/Categorias.astro';
+import Manifiesto from '../components/Manifiesto.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { getProducts, pickNew } from '../lib/products';
+import { getSiteContent } from '../lib/content';
+
+const products = await getProducts();
+const novedades = pickNew(products, 4);
+const { siteDescription } = await getSiteContent();
+---
+
+<Base
+  title="ENIGMA® — Ropa contemporánea"
+  description={siteDescription}
+  headerTheme="dark"
+>
+  <Preloader />
+  <Hero />
+  <Novedades products={novedades} />
+  <Editorial />
+  <Categorias />
+  <Manifiesto />
+  <Newsletter />
+</Base>

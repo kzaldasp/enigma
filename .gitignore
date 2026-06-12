@@ -1,0 +1,20 @@
+# build
+dist/
+.astro/
+
+# deps
+node_modules/
+
+# env
+.env
+.env.production
+
+# vercel
+.vercel/
+
+# comprobantes subidos en desarrollo
+public/uploads/
+
+# os
+.DS_Store
+Thumbs.db

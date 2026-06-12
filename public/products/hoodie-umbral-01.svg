@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" role="img"><rect width="900" height="1200" fill="#F6F4EF"/>
+    <path d="M450 326c-48 0-88 27-101 67l-11 34-64 24c-27 10-44 36-44 65v310c0 23 18 41 41 41h358c23 0 41-18 41-41V516c0-29-17-55-44-65l-64-24-11-34c-13-40-53-67-101-67Z" fill="#DBD7CD"/>
+    <path d="M359 415c0-52 41-93 91-93s91 41 91 93c-27-19-57-29-91-29s-64 10-91 29Z" fill="#C9C5BA"/>
+    <rect x="436" y="468" width="9" height="64" rx="4.5" fill="#C9C5BA"/>
+    <rect x="458" y="468" width="9" height="64" rx="4.5" fill="#C9C5BA"/>
+    <path d="M363 704h174v100c0 13-11 24-24 24H387c-13 0-24-11-24-24V704Z" fill="#C9C5BA" opacity="0.55"/><text x="48" y="1150" font-family="Arial, Helvetica, sans-serif" font-size="21" letter-spacing="4.5" fill="#8A8780">ENIGMA — FIG. 01</text></svg>

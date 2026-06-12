@@ -1,0 +1,60 @@
+---
+import type { Product } from '../lib/products';
+import { formatPrice } from '../lib/site';
+
+interface Props {
+  product: Product;
+  /** true para cards sobre el pliegue (hero-adjacent). */
+  eager?: boolean;
+}
+
+const { product, eager = false } = Astro.props;
+const { slug, title, price, images, category, soldOut } = product;
+const badge = soldOut ? 'AGOTADO' : product.badge;
+
+const front = images[0];
+const alternate = images[1] ?? null;
+---
+
+<a
+  href={`/producto/${slug}`}
+  class="group block"
+  data-reveal-item
+  data-category={category}
+  aria-label={`${title} — ${formatPrice(price)}`}
+>
+  <div class="relative aspect-[3/4] overflow-hidden">
+    <img
+      src={front}
+      alt={`${title}, vista de la pieza`}
+      class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
+      loading={eager ? 'eager' : 'lazy'}
+    />
+    {
+      alternate && (
+        <img
+          src={alternate}
+          alt=""
+          aria-hidden="true"
+          class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          loading="lazy"
+        />
+      )
+    }
+    {
+      badge && (
+        <span class={`caps absolute top-3 left-3 ${badge === 'AGOTADO' ? 'text-stone' : 'text-ink'}`}>
+          {badge}
+        </span>
+      )
+    }
+  </div>
+  <div class="mt-4 flex items-baseline justify-between gap-4">
+    <h3 class="caps">
+      <span class="u-link">{title}</span>
+    </h3>
+    <p class={`caps ${badge === 'AGOTADO' ? 'text-stone line-through' : 'text-stone'}`}>
+      {formatPrice(price)}
+    </p>
+  </div>
+</a>

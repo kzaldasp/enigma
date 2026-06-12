@@ -1,0 +1,34 @@
+---
+import { Image } from 'astro:assets';
+import { campaignImage } from '../lib/images';
+
+const editorial = campaignImage('editorial');
+const phrase = 'No necesitas explicarlo. Eso es Enigma.';
+const words = phrase.split(' ');
+---
+
+<section class="relative bg-ink text-bone" aria-label="Editorial de campaña">
+  <div class="parallax-frame relative h-[88svh] min-h-[30rem]">
+    <Image
+      src={editorial}
+      alt="Editorial ENIGMA: figura de pie en un espacio vacío en penumbra"
+      data-parallax
+      loading="lazy"
+    />
+    <div class="absolute inset-0 bg-ink/30" aria-hidden="true"></div>
+
+    <div class="wrap absolute inset-0 flex flex-col justify-center">
+      <p
+        class="max-w-[16ch] font-display text-editorial tracking-display italic"
+        data-words
+        aria-label={phrase}
+      >
+        {words.map((word) => <span data-word aria-hidden="true">{word} </span>)}
+      </p>
+      <p class="mt-10 max-w-xs text-sm leading-relaxed text-bone/70" data-reveal>
+        Piezas en series cortas, cortadas y terminadas a mano. Cuando una se agota, no vuelve:
+        así se mantiene el silencio.
+      </p>
+    </div>
+  </div>
+</section>

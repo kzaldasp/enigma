@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" role="img"><rect width="900" height="1200" fill="#F6F4EF"/>
+    <rect x="338" y="368" width="224" height="78" fill="#C9C5BA"/>
+    <circle cx="450" cy="407" r="7" fill="#8A8780" opacity="0.5"/>
+    <path d="M338 446h106l-16 470c-1 13-12 24-25 24h-64c-14 0-25-12-24-26l23-468Z" fill="#DBD7CD"/>
+    <path d="M562 446H456l16 470c1 13 12 24 25 24h64c14 0 25-12 24-26l-23-468Z" fill="#DBD7CD"/>
+    <path d="M352 470l-18 444" stroke="#C9C5BA" stroke-width="3" fill="none"/>
+    <path d="M548 470l18 444" stroke="#C9C5BA" stroke-width="3" fill="none"/><text x="48" y="1150" font-family="Arial, Helvetica, sans-serif" font-size="21" letter-spacing="4.5" fill="#8A8780">ENIGMA — FIG. 07</text></svg>

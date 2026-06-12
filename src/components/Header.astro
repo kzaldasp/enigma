@@ -1,0 +1,134 @@
+---
+import { NAV } from '../lib/site';
+import { getSiteContent } from '../lib/content';
+
+interface Props {
+  /** 'dark' cuando la página abre con hero oscuro (texto hueso sobre la foto). */
+  theme?: 'light' | 'dark';
+}
+
+const { theme = 'light' } = Astro.props;
+const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isCurrent = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+
+const { contactInstagram, contactCity } = await getSiteContent();
+
+const menuItems = [
+  ...NAV.map((item) => ({ ...item })),
+  { label: 'CONTACTO', href: '/marca' },
+];
+---
+
+<header id="site-header" data-theme={theme} class="fixed inset-x-0 top-0 z-50">
+  <div class="wrap flex h-16 items-center justify-between md:h-20">
+    <!-- Izquierda: navegación desktop / botón menú móvil -->
+    <nav aria-label="Principal" class="hidden flex-1 items-center gap-7 md:flex">
+      {
+        NAV.map((item) => (
+          <a
+            href={item.href}
+            class="u-link caps"
+            aria-current={isCurrent(item.href) ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="flex flex-1 items-center md:hidden">
+      <button
+        id="menu-toggle"
+        type="button"
+        class="caps -ml-2 flex min-h-11 min-w-11 items-center px-2"
+        aria-expanded="false"
+        aria-controls="menu-overlay"
+      >
+        <span data-menu-label>MENÚ</span>
+      </button>
+    </div>
+
+    <!-- Centro: wordmark -->
+    <a
+      href="/"
+      class="font-display text-[1.35rem] tracking-display md:text-2xl"
+      aria-label="ENIGMA — inicio"
+    >
+      ENIGMA<sup class="text-[0.55em]">®</sup>
+    </a>
+
+    <!-- Derecha: contacto + bolsa de compras -->
+    <div class="flex flex-1 items-center justify-end gap-7">
+      <a
+        href="/marca"
+        class="u-link caps hidden md:inline-block"
+        aria-current={isCurrent('/marca') ? 'page' : undefined}
+      >
+        CONTACTO
+      </a>
+      <a
+        href="/carrito"
+        aria-label="Ver bolsa de compras"
+        class="relative flex min-h-11 min-w-11 items-center justify-center"
+      >
+        <svg
+          width="19"
+          height="21"
+          viewBox="0 0 19 21"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.2"
+          aria-hidden="true"
+        >
+          <path d="M2.5 6.5h14l-1.2 12.7a1 1 0 0 1-1 .9H4.7a1 1 0 0 1-1-.9L2.5 6.5Z" />
+          <path d="M6.2 6.3a3.3 3.3 0 0 1 6.6 0" />
+        </svg>
+        <span
+          data-cart-count
+          hidden
+          class="caps absolute -top-1 -right-1.5 text-[0.65rem] leading-none"
+        ></span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Overlay móvil: pantalla completa en negro, enlaces numerados -->
+  <div
+    id="menu-overlay"
+    hidden
+    class="fixed inset-0 z-[-1] flex h-svh flex-col justify-between bg-ink pt-24 pb-10 text-bone md:hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menú"
+  >
+    <nav aria-label="Menú móvil" class="wrap">
+      <ol class="flex flex-col gap-1">
+        {
+          menuItems.map((item, i) => (
+            <li class="overflow-hidden border-b border-line-dark last:border-b-0">
+              <a
+                href={item.href}
+                data-menu-item
+                class="flex items-baseline gap-5 py-3"
+                aria-current={isCurrent(item.href) ? 'page' : undefined}
+              >
+                <span class="caps text-stone">0{i + 1}</span>
+                <span class="font-display text-menu tracking-display">{item.label}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+    </nav>
+    <div class="wrap flex items-center justify-between">
+      <a
+        href={contactInstagram}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="u-link caps text-stone"
+      >
+        INSTAGRAM
+      </a>
+      <p class="caps text-stone">{contactCity}</p>
+    </div>
+  </div>
+</header>

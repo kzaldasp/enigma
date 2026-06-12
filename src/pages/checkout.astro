@@ -1,0 +1,90 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Finalizar compra — ENIGMA®" description="Completa tu pedido." noindex>
+  <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
+    <div class="wrap max-w-5xl">
+      <h1 class="font-display text-section tracking-display" data-reveal>Finalizar compra</h1>
+
+      <div class="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
+        <form id="checkout-form" class="flex flex-col gap-7">
+          <div>
+            <label for="co-name" class="caps text-stone">Nombre completo *</label>
+            <input
+              id="co-name"
+              name="name"
+              required
+              autocomplete="name"
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-phone" class="caps text-stone">WhatsApp / Teléfono *</label>
+            <input
+              id="co-phone"
+              name="phone"
+              required
+              type="tel"
+              autocomplete="tel"
+              placeholder="0991234567"
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-email" class="caps text-stone">Correo (opcional)</label>
+            <input
+              id="co-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-address" class="caps text-stone">Dirección de entrega *</label>
+            <input
+              id="co-address"
+              name="address"
+              required
+              autocomplete="street-address"
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-city" class="caps text-stone">Ciudad *</label>
+            <input
+              id="co-city"
+              name="city"
+              required
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-notes" class="caps text-stone">Notas (opcional)</label>
+            <input
+              id="co-notes"
+              name="notes"
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+
+          <p data-checkout-error hidden class="caps text-stone" role="alert"></p>
+          <button type="submit" class="btn btn-ink mt-2">CONFIRMAR PEDIDO</button>
+          <p class="caps text-stone">
+            AL CONFIRMAR RECIBES LOS DATOS BANCARIOS PARA LA TRANSFERENCIA.
+          </p>
+        </form>
+
+        <aside class="lg:border-l lg:border-line lg:pl-12">
+          <h2 class="caps text-stone">Tu pedido</h2>
+          <ul class="mt-4" data-checkout-items></ul>
+          <p class="caps mt-6 flex justify-between text-lg">
+            <span>TOTAL</span>
+            <span data-checkout-total></span>
+          </p>
+        </aside>
+      </div>
+    </div>
+  </section>
+</Base>

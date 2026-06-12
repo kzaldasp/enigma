@@ -1,0 +1,212 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { getProducts, getProductBySlug, pickRelated } from '../../lib/products';
+import { getSiteContent } from '../../lib/content';
+import { CATEGORY_LABELS, formatPrice } from '../../lib/site';
+
+const { slug } = Astro.params;
+const product = slug ? await getProductBySlug(slug) : undefined;
+if (!product) {
+  return Astro.redirect('/404');
+}
+
+const products = await getProducts();
+const site = await getSiteContent();
+const { title, price, description, sizes, images, category, soldOut } = product;
+const related = pickRelated(products, product, 4);
+const badge = soldOut ? 'AGOTADO' : product.badge;
+
+const toAbsolute = (url: string) =>
+  url.startsWith('http') ? url : new URL(url, Astro.site).href;
+
+const jsonLd = JSON.stringify([
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: title,
+    description,
+    sku: `p${product.id}`,
+    image: images.map(toAbsolute),
+    brand: { '@type': 'Brand', name: 'ENIGMA' },
+    offers: {
+      '@type': 'Offer',
+      url: new URL(`/producto/${product.slug}`, Astro.site).href,
+      priceCurrency: 'USD',
+      price,
+      itemCondition: 'https://schema.org/NewCondition',
+      availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Catálogo',
+        item: new URL('/catalogo', Astro.site).href,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: CATEGORY_LABELS[category],
+        item: new URL(`/catalogo?categoria=${category}`, Astro.site).href,
+      },
+      { '@type': 'ListItem', position: 3, name: title },
+    ],
+  },
+]);
+---
+
+<Base title={`${title} — ENIGMA®`} description={description} ogImage={images[0]}>
+  <script is:inline type="application/ld+json" set:html={jsonLd} slot="head" />
+
+  <article class="bg-bone pt-24 pb-section text-ink md:pt-32">
+    <div class="wrap">
+      <nav aria-label="Miga de pan" class="caps mb-10 flex gap-3 text-stone" data-reveal>
+        <a href="/catalogo" class="u-link">CATÁLOGO</a>
+        <span aria-hidden="true">/</span>
+        <a href={`/catalogo?categoria=${category}`} class="u-link">{CATEGORY_LABELS[category]}</a>
+      </nav>
+
+      <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
+        <!-- Galería vertical: scroll natural, sin carrusel -->
+        <div class="flex flex-col gap-6">
+          {
+            images.map((img, i) => (
+              <img
+                src={img}
+                alt={i === 0 ? `${title}, vista de la pieza` : `${title}, pieza en modelo`}
+                class="w-full"
+                loading={i === 0 ? 'eager' : 'lazy'}
+                fetchpriority={i === 0 ? 'high' : undefined}
+              />
+            ))
+          }
+        </div>
+
+        <!-- Columna sticky de compra -->
+        <div
+          class="lg:sticky lg:top-28 lg:self-start"
+          data-product
+          data-product-slug={product.slug}
+          data-product-title={title}
+          data-product-price={price}
+          data-product-image={images[0]}
+        >
+          {badge && <p class={`caps mb-4 ${soldOut ? 'text-stone' : ''}`}>{badge}</p>}
+          <h1 class="font-display text-product tracking-display">{title}</h1>
+          <p class="caps mt-3 text-stone">{formatPrice(price)}</p>
+          <p class="mt-7 max-w-md leading-relaxed">{description}</p>
+
+          <fieldset class="mt-10">
+            <legend class="caps text-stone">Talle</legend>
+            <div class="mt-4 flex flex-wrap gap-3">
+              {
+                sizes.map(({ size, stock }) => {
+                  const out = stock === 0;
+                  return (
+                    <label class="size-opt">
+                      <input
+                        type="radio"
+                        name="talle"
+                        value={size}
+                        class="peer sr-only"
+                        disabled={out}
+                      />
+                      <span
+                        class={`caps flex h-12 min-w-12 items-center justify-center border border-line px-3 transition-colors duration-300 peer-checked:border-ink peer-checked:bg-ink peer-checked:text-bone peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-ink ${out ? 'text-stone line-through opacity-50' : 'hover:border-ink'}`}
+                      >
+                        {size}
+                      </span>
+                    </label>
+                  );
+                })
+              }
+            </div>
+            <p data-size-hint hidden class="caps mt-4 text-stone" role="status">
+              ELIGE UN TALLE PRIMERO
+            </p>
+          </fieldset>
+
+          <div class="mt-10 flex flex-col gap-3">
+            {
+              soldOut ? (
+                <a
+                  href="#"
+                  class="btn btn-ink w-full"
+                  data-wa-product={title}
+                  data-wa-number={site.whatsappNumber}
+                  data-wa-soldout
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  AGOTADO — AVISARME CUANDO VUELVA
+                </a>
+              ) : (
+                <>
+                  <button type="button" class="btn btn-ink w-full" data-add-to-cart>
+                    AGREGAR A LA BOLSA
+                  </button>
+                  <p data-cart-added hidden class="caps text-stone" role="status">
+                    AGREGADO — <a href="/carrito" class="u-link">VER BOLSA →</a>
+                  </p>
+                  {site.whatsappNumber && (
+                    <a
+                      href="#"
+                      class="btn w-full border border-ink"
+                      data-wa-product={title}
+                      data-wa-number={site.whatsappNumber}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      COMPRAR POR WHATSAPP
+                    </a>
+                  )}
+                </>
+              )
+            }
+          </div>
+
+          <!-- Acordeones hairline -->
+          <div class="mt-12">
+            <details class="acc">
+              <summary class="caps">DETALLES</summary>
+              <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
+                {description} Producción en serie corta, numerada. Composición y cuidados en la
+                etiqueta interior.
+              </p>
+            </details>
+            <details class="acc">
+              <summary class="caps">ENVÍOS</summary>
+              <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
+                {site.shippingText}
+              </p>
+            </details>
+            <details class="acc">
+              <summary class="caps">CAMBIOS</summary>
+              <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
+                {site.returnsText}
+              </p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relacionados -->
+    <section class="wrap mt-[var(--spacing-section)]" aria-labelledby="related-title">
+      <div class="mb-12 flex items-end justify-between gap-6" data-reveal>
+        <h2 id="related-title" class="font-display text-product tracking-display">
+          También te puede interesar
+        </h2>
+        <a href="/catalogo" class="u-link caps shrink-0 pb-2">VER TODO →</a>
+      </div>
+      <div class="grid grid-cols-2 gap-x-6 gap-y-12 md:gap-x-10 lg:grid-cols-4 lg:gap-x-12" data-reveal-group>
+        {related.map((p) => <ProductCard product={p} />)}
+      </div>
+    </section>
+  </article>
+</Base>

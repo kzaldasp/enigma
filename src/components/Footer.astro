@@ -1,0 +1,54 @@
+---
+import { NAV, waLink } from '../lib/site';
+import { getSiteContent } from '../lib/content';
+
+const { contactInstagram, whatsappNumber } = await getSiteContent();
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-line bg-bone text-ink">
+  <div class="wrap flex flex-col gap-10 py-14 md:flex-row md:items-start md:justify-between">
+    <nav aria-label="Pie de página" class="flex flex-wrap items-center gap-x-7 gap-y-3">
+      {NAV.map((item) => <a href={item.href} class="u-link caps">{item.label}</a>)}
+      <a href="/marca" class="u-link caps">CONTACTO</a>
+    </nav>
+
+    <div class="flex flex-wrap items-center gap-x-7 gap-y-3">
+      <a
+        href={contactInstagram}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="u-link caps text-stone"
+      >
+        INSTAGRAM
+      </a>
+      {
+        whatsappNumber && (
+          <a
+            href={waLink(whatsappNumber, 'Hola, ENIGMA.')}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="u-link caps text-stone"
+          >
+            WHATSAPP
+          </a>
+        )
+      }
+      <a href="/legal#terminos" class="u-link caps text-stone">TÉRMINOS</a>
+      <a href="/legal#privacidad" class="u-link caps text-stone">PRIVACIDAD</a>
+    </div>
+  </div>
+
+  <div class="wrap pb-4">
+    <p class="caps text-stone">© {year} ENIGMA — TODAS LAS PIEZAS SON LIMITADAS</p>
+  </div>
+
+  <!-- La firma del sitio: wordmark gigante cortado por el borde inferior -->
+  <div class="overflow-hidden" aria-hidden="true">
+    <p
+      class="translate-y-[0.16em] text-center font-display text-wordmark tracking-display whitespace-nowrap select-none"
+    >
+      ENIGMA<sup class="text-[0.35em]">®</sup>
+    </p>
+  </div>
+</footer>

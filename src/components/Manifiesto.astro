@@ -1,0 +1,41 @@
+---
+import { getSiteContent } from '../lib/content';
+
+const { manifestoLines: lines } = await getSiteContent();
+
+const marqueeItems = Array.from({ length: 6 });
+---
+
+<section class="overflow-hidden bg-ink py-section text-bone" aria-labelledby="manifiesto-title">
+  <h2 id="manifiesto-title" class="sr-only">Manifiesto</h2>
+
+  <div class="wrap">
+    <blockquote
+      class="mx-auto max-w-4xl text-center font-display text-manifesto tracking-display"
+      data-lines
+    >
+      {
+        lines.map((line) => (
+          <span data-line>
+            <span class="line-in">{line}</span>
+          </span>
+        ))
+      }
+    </blockquote>
+  </div>
+
+  <!-- Marquee infinito en outline, lento; pausado con prefers-reduced-motion -->
+  <div class="marquee mt-[calc(var(--spacing-section)*0.7)]" aria-hidden="true">
+    {
+      [0, 1].map(() => (
+        <div class="marquee-track">
+          {marqueeItems.map(() => (
+            <span class="text-outline px-[0.35em] font-display text-[clamp(4rem,11vw,9rem)] leading-none whitespace-nowrap">
+              ENIGMA
+            </span>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+</section>

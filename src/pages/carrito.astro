@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Bolsa — ENIGMA®" description="Tu bolsa de compras." noindex>
+  <section class="bg-bone pt-36 pb-section text-ink md:pt-44" data-cart-page>
+    <div class="wrap max-w-4xl">
+      <h1 class="font-display text-section tracking-display" data-reveal>Bolsa</h1>
+
+      <div class="mt-12" data-cart-items></div>
+
+      <p data-cart-empty hidden class="caps mt-6 text-stone">
+        TU BOLSA ESTÁ VACÍA — <a href="/catalogo" class="u-link">VER CATÁLOGO →</a>
+      </p>
+
+      <div data-cart-summary hidden class="mt-10 flex flex-col items-end gap-6">
+        <p class="caps text-lg">
+          TOTAL: <span data-cart-total></span>
+        </p>
+        <p class="caps max-w-md text-right text-stone">
+          PAGO POR TRANSFERENCIA BANCARIA — AL CONFIRMAR RECIBES LOS DATOS DE LA CUENTA.
+        </p>
+        <a href="/checkout" class="btn btn-ink">FINALIZAR COMPRA</a>
+      </div>
+    </div>
+  </section>
+</Base>

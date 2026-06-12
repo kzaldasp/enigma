@@ -1,0 +1,114 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import { campaignImage } from '../lib/images';
+import { waLink } from '../lib/site';
+import { getSiteContent } from '../lib/content';
+
+const atelier = campaignImage('marca');
+const site = await getSiteContent();
+const WHATSAPP_NUMBER = site.whatsappNumber;
+const phone = WHATSAPP_NUMBER
+  ? `+${WHATSAPP_NUMBER.slice(0, 3)} ${WHATSAPP_NUMBER.slice(3, 5)} ${WHATSAPP_NUMBER.slice(5, 9)} ${WHATSAPP_NUMBER.slice(9)}`
+  : '';
+---
+
+<Base
+  title="Sobre la marca — ENIGMA®"
+  description="ENIGMA es un estudio de ropa contemporánea. Series cortas, materiales honestos y un canal directo: hablas con quien hace la ropa."
+  headerTheme="dark"
+>
+  <!-- Manifiesto de marca (oscuro) -->
+  <section class="bg-ink pt-36 pb-section text-bone md:pt-48">
+    <div class="wrap">
+      <p class="caps mb-8 text-stone" data-reveal>LA MARCA</p>
+      <h1 class="max-w-5xl font-display text-manifesto tracking-display" data-lines>
+        <span data-line><span class="line-in">Enigma no es un logotipo.</span></span>
+        <span data-line><span class="line-in">Es la decisión de no explicarse:</span></span>
+        <span data-line><span class="line-in">ropa que sostiene la mirada sin devolverla.</span></span>
+      </h1>
+
+      <div class="mt-20 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
+        <div class="parallax-frame aspect-[8/5]">
+          <Image
+            src={atelier}
+            alt="El atelier de ENIGMA en penumbra"
+            data-parallax
+            loading="lazy"
+          />
+        </div>
+        <div class="max-w-md space-y-6 leading-relaxed text-bone/80 lg:pt-10" data-reveal>
+          <p>
+            ENIGMA nace en Quito en 2024. Cada temporada es una serie corta: pocas piezas, pocas
+            unidades, cero reposición. Lo que se agota, se agota.
+          </p>
+          <p>
+            Trabajamos con talleres a menos de veinte kilómetros del estudio, con materiales que
+            mejoran con el uso y costuras pensadas para durar más que la tendencia.
+          </p>
+          <p>
+            No hay carrito ni pasarela de pago: cada compra es una conversación. Escribes, eliges,
+            recibes. Así de directo.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contacto (claro) -->
+  <section id="contacto" class="bg-bone py-section text-ink" aria-labelledby="contacto-title">
+    <div class="wrap">
+      <h2 id="contacto-title" class="font-display text-section tracking-display" data-reveal>
+        Contacto
+      </h2>
+
+      <dl class="mt-12 border-t border-line" data-reveal>
+        {
+          WHATSAPP_NUMBER && (
+            <div class="flex flex-wrap items-baseline justify-between gap-4 border-b border-line py-6">
+              <dt class="caps text-stone">WHATSAPP</dt>
+              <dd>
+                <a
+                  href={waLink(WHATSAPP_NUMBER, 'Hola, ENIGMA.')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="u-link caps"
+                >
+                  {phone}
+                </a>
+              </dd>
+            </div>
+          )
+        }
+        <div class="flex flex-wrap items-baseline justify-between gap-4 border-b border-line py-6">
+          <dt class="caps text-stone">CORREO</dt>
+          <dd>
+            <a href={`mailto:${site.contactEmail}`} class="u-link caps">{site.contactEmail}</a>
+          </dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-4 border-b border-line py-6">
+          <dt class="caps text-stone">INSTAGRAM</dt>
+          <dd>
+            <a
+              href={site.contactInstagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="u-link caps"
+            >
+              @ENIGMA
+            </a>
+          </dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-4 border-b border-line py-6">
+          <dt class="caps text-stone">ESTUDIO</dt>
+          <dd class="caps">{site.contactCity}</dd>
+        </div>
+      </dl>
+
+      <p class="mt-10 max-w-md text-stone" data-reveal>
+        Respondemos de lunes a sábado, de 09h00 a 19h00. Si una pieza está agotada, escríbenos
+        igual: a veces queda una unidad en el estudio.
+      </p>
+    </div>
+  </section>
+</Base>

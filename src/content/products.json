@@ -1,0 +1,128 @@
+[
+  {
+    "id": "p01",
+    "slug": "hoodie-umbral",
+    "title": "Hoodie Umbral",
+    "price": 98,
+    "description": "Algodón francés de 480 g/m² con interior perchado. Hombro caído, capucha de tres paneles y tinte a prenda: cada unidad envejece distinto.",
+    "sizes": ["S", "M", "L", "XL"],
+    "images": ["hoodie-umbral-01", "hoodie-umbral-02"],
+    "category": "superior",
+    "badge": "NUEVO"
+  },
+  {
+    "id": "p02",
+    "slug": "camiseta-velo",
+    "title": "Camiseta Velo",
+    "price": 42,
+    "description": "Jersey peinado de 240 g/m² con cuello reforzado y tapeta interior. Caída recta, costuras limpias. La etiqueta va por dentro.",
+    "sizes": ["S", "M", "L", "XL"],
+    "images": ["camiseta-velo-01", "camiseta-velo-02"],
+    "category": "superior",
+    "badge": "NUEVO"
+  },
+  {
+    "id": "p03",
+    "slug": "camiseta-cifra",
+    "title": "Camiseta Cifra",
+    "price": 45,
+    "description": "Corte boxy en algodón orgánico de 220 g/m². Serigrafía tonal al frente: casi invisible de lejos, exacta de cerca.",
+    "sizes": ["S", "M", "L", "XL"],
+    "images": ["camiseta-cifra-01", "camiseta-cifra-02"],
+    "category": "superior"
+  },
+  {
+    "id": "p04",
+    "slug": "chaqueta-reverso",
+    "title": "Chaqueta Reverso",
+    "price": 158,
+    "description": "Sarga de algodón con lavado a piedra y forro de viscosa. Cierre metálico mate y dos bolsillos internos. Pensada para diez años, no una temporada.",
+    "sizes": ["S", "M", "L", "XL"],
+    "images": ["chaqueta-reverso-01", "chaqueta-reverso-02"],
+    "category": "superior"
+  },
+  {
+    "id": "p05",
+    "slug": "camisa-mutismo",
+    "title": "Camisa Mutismo",
+    "price": 96,
+    "description": "Popelina compacta de 130 g/m² con botones de corozo. Cuello bajo y líneas limpias, sin bolsillo frontal. Cae pesada y no pide plancha.",
+    "sizes": ["S", "M", "L", "XL"],
+    "images": ["camisa-mutismo-01", "camisa-mutismo-02"],
+    "category": "superior",
+    "badge": "AGOTADO"
+  },
+  {
+    "id": "p06",
+    "slug": "pantalon-margen",
+    "title": "Pantalón Margen",
+    "price": 118,
+    "description": "Gabardina de algodón con caída pesada. Pierna amplia con pinza única, cintura media y herrajes mate. Dobladillo de 4 cm para ajustar el largo.",
+    "sizes": ["28", "30", "32", "34"],
+    "images": ["pantalon-margen-01", "pantalon-margen-02"],
+    "category": "inferior",
+    "badge": "NUEVO"
+  },
+  {
+    "id": "p07",
+    "slug": "denim-sombra",
+    "title": "Denim Sombra",
+    "price": 132,
+    "description": "Denim japonés de 14 oz sin lavar, pierna recta. Costuras reforzadas en hilo tonal. Se ajusta a su dueño con los meses.",
+    "sizes": ["28", "30", "32", "34"],
+    "images": ["denim-sombra-01", "denim-sombra-02"],
+    "category": "inferior"
+  },
+  {
+    "id": "p08",
+    "slug": "short-pausa",
+    "title": "Short Pausa",
+    "price": 64,
+    "description": "Twill ligero de secado rápido. Cintura elástica interna, bolsillo trasero con cierre y largo sobre la rodilla.",
+    "sizes": ["S", "M", "L", "XL"],
+    "images": ["short-pausa-01", "short-pausa-02"],
+    "category": "inferior"
+  },
+  {
+    "id": "p09",
+    "slug": "gorra-clave",
+    "title": "Gorra Clave",
+    "price": 38,
+    "description": "Seis paneles en lona lavada, visera curva y hebilla metálica. El bordado tonal del frente solo se ve de cerca.",
+    "sizes": ["ÚNICA"],
+    "images": ["gorra-clave-01", "gorra-clave-02"],
+    "category": "accesorios"
+  },
+  {
+    "id": "p10",
+    "slug": "tote-archivo",
+    "title": "Tote Archivo",
+    "price": 32,
+    "description": "Lona de algodón de 16 oz con base reforzada y asas de 70 cm. Carga el día entero sin perder la forma.",
+    "sizes": ["ÚNICA"],
+    "images": ["tote-archivo-01", "tote-archivo-02"],
+    "category": "accesorios",
+    "badge": "NUEVO"
+  },
+  {
+    "id": "p11",
+    "slug": "bufanda-niebla",
+    "title": "Bufanda Niebla",
+    "price": 54,
+    "description": "Lana merino tejida en doble cara, 180 × 35 cm. Sin logotipos a la vista: el tacto es la firma.",
+    "sizes": ["ÚNICA"],
+    "images": ["bufanda-niebla-01", "bufanda-niebla-02"],
+    "category": "accesorios",
+    "badge": "AGOTADO"
+  },
+  {
+    "id": "p12",
+    "slug": "cinturon-trazo",
+    "title": "Cinturón Trazo",
+    "price": 46,
+    "description": "Cuero de curtido vegetal de 4 mm con hebilla niquelada mate. Se oscurece con el uso, como debe ser.",
+    "sizes": ["S", "M", "L"],
+    "images": ["cinturon-trazo-01", "cinturon-trazo-02"],
+    "category": "accesorios"
+  }
+]

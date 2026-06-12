@@ -1,0 +1,23 @@
+---
+import ProductCard from './ProductCard.astro';
+import type { Product } from '../lib/products';
+
+interface Props {
+  products: Product[];
+}
+
+const { products } = Astro.props;
+---
+
+<section class="bg-bone py-section text-ink" aria-labelledby="novedades-title">
+  <div class="wrap">
+    <div class="mb-12 flex items-end justify-between gap-6 md:mb-16" data-reveal>
+      <h2 id="novedades-title" class="font-display text-section tracking-display">Novedades</h2>
+      <a href="/catalogo" class="u-link caps shrink-0 pb-2">VER TODO →</a>
+    </div>
+
+    <div class="grid grid-cols-2 gap-x-6 gap-y-12 md:gap-x-10 lg:grid-cols-4 lg:gap-x-12" data-reveal-group>
+      {products.map((product) => <ProductCard product={product} />)}
+    </div>
+  </div>
+</section>

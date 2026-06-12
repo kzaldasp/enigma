@@ -1,0 +1,40 @@
+---
+import { Image } from 'astro:assets';
+import { campaignImage } from '../lib/images';
+import { getSiteContent } from '../lib/content';
+
+const hero = campaignImage('hero');
+const { seasonLine } = await getSiteContent();
+---
+
+<section
+  data-hero
+  data-lines
+  class="parallax-frame relative flex h-svh min-h-[34rem] flex-col justify-end bg-ink text-bone"
+>
+  <Image
+    src={hero}
+    alt="Campaña ENIGMA verano 2026: figura en penumbra dentro del estudio"
+    data-parallax
+    loading="eager"
+    fetchpriority="high"
+  />
+  <!-- Overlay negro al 30 % -->
+  <div class="absolute inset-0 bg-ink/30" aria-hidden="true"></div>
+
+  <div class="wrap relative pb-10 md:pb-14">
+    <h1 class="font-display text-hero tracking-display">
+      <span data-line><span class="line-in">ENIGMA</span></span>
+    </h1>
+    <div
+      class="mt-8 flex flex-col gap-7 border-t border-bone/20 pt-7 md:flex-row md:items-center md:justify-between"
+    >
+      <p data-hero-fade class="caps">
+        {seasonLine}
+      </p>
+      <a href="/catalogo" class="btn btn-bone self-start md:self-auto" data-hero-fade>
+        COMPRAR AHORA
+      </a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,122 @@
+---
+import '@fontsource/cormorant-garamond/400.css';
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/cormorant-garamond/500-italic.css';
+import '@fontsource-variable/inter';
+import cormorantWoff2 from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-normal.woff2?url';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_NAME } from '../lib/site';
+import { getSiteContent } from '../lib/content';
+
+const site = await getSiteContent();
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Tema del header en el tope de la página (hero oscuro → 'dark'). */
+  headerTheme?: 'light' | 'dark';
+  ogImage?: string;
+  /** true en páginas que no deben indexarse (404, etc.). */
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = site.siteDescription,
+  headerTheme = 'light',
+  ogImage = '/og.jpg',
+  noindex = false,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImageUrl = new URL(ogImage, Astro.site);
+
+// Identidad de marca para buscadores: Organization + WebSite, en todas
+// las páginas. `sameAs` conecta la entidad con sus perfiles sociales.
+const identityLd = JSON.stringify([
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': new URL('/#organization', Astro.site).href,
+    name: SITE_NAME,
+    url: Astro.site?.href,
+    logo: new URL('/og.jpg', Astro.site).href,
+    email: site.contactEmail,
+    sameAs: [site.contactInstagram],
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Quito',
+      addressCountry: 'EC',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: Astro.site?.href,
+    inLanguage: 'es',
+    publisher: { '@id': new URL('/#organization', Astro.site).href },
+  },
+]);
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0A0A0A" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={title} />
+    <meta property="og:locale" content="es_EC" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={title} />
+
+    <script is:inline type="application/ld+json" set:html={identityLd} />
+
+    <link rel="preload" href={cormorantWoff2} as="font" type="font/woff2" crossorigin />
+
+    <script is:inline>
+      // Antes del primer paint: marca JS disponible (gatea los estados
+      // iniciales de animación) y decide si el preloader ya se vio.
+      document.documentElement.classList.add('js');
+      try {
+        if (sessionStorage.getItem('enigma:preloader')) {
+          document.documentElement.setAttribute('data-preloader', 'done');
+        }
+      } catch {}
+    </script>
+
+    <ClientRouter />
+    <slot name="head" />
+  </head>
+  <body class="bg-bone font-sans text-ink antialiased">
+    <a href="#main" class="skip-link caps">Saltar al contenido</a>
+    <Header theme={headerTheme} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <script src="../scripts/app.ts"></script>
+  </body>
+</html>

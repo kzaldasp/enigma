@@ -1,0 +1,69 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { getProducts } from '../lib/products';
+import { CATEGORIES, CATEGORY_LABELS } from '../lib/site';
+
+const products = await getProducts();
+const total = products.length;
+
+const itemListLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Catálogo ENIGMA',
+  numberOfItems: total,
+  itemListElement: products.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: p.title,
+    url: new URL(`/producto/${p.slug}`, Astro.site).href,
+  })),
+});
+---
+
+<Base
+  title="Catálogo — ENIGMA®"
+  description="Todas las piezas de la colección actual de ENIGMA: parte superior, parte inferior y accesorios. Series cortas, compra directa por WhatsApp."
+>
+  <script is:inline type="application/ld+json" set:html={itemListLd} slot="head" />
+  <section class="bg-bone pt-36 pb-section text-ink md:pt-44" data-catalog>
+    <div class="wrap">
+      <header class="flex flex-wrap items-end justify-between gap-6" data-reveal>
+        <h1 class="font-display text-section tracking-display">Catálogo</h1>
+        <p class="caps pb-2 text-stone" data-count aria-live="polite">
+          {total} PIEZAS
+        </p>
+      </header>
+
+      <!-- Filtros: texto plano, subrayado al activo — el enum manda -->
+      <nav
+        class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-line pt-6"
+        aria-label="Filtrar por categoría"
+        data-reveal
+      >
+        <button type="button" class="u-link caps is-active min-h-11" data-filter="todo" aria-pressed="true">
+          TODO
+        </button>
+        {
+          CATEGORIES.map((category) => (
+            <button
+              type="button"
+              class="u-link caps min-h-11"
+              data-filter={category}
+              aria-pressed="false"
+            >
+              {CATEGORY_LABELS[category]}
+            </button>
+          ))
+        }
+      </nav>
+
+      <div
+        class="mt-14 grid grid-cols-2 gap-x-6 gap-y-14 md:gap-x-10 lg:grid-cols-3 lg:gap-x-12"
+        data-reveal-group
+      >
+        {products.map((product, i) => <ProductCard product={product} eager={i < 3} />)}
+      </div>
+    </div>
+  </section>
+</Base>

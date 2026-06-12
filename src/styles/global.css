@@ -1,0 +1,362 @@
+@import "tailwindcss";
+
+/* ----------------------------------------------------------------
+   ENIGMA — design tokens
+   Paleta cerrada: bone / ink / graphite / stone / line (+ line-dark
+   para hairlines sobre fondo oscuro). `--color-*: initial` borra la
+   paleta por defecto de Tailwind: cualquier bg-white, gray-*, etc.
+   simplemente no existe y el build lo delata.
+----------------------------------------------------------------- */
+@theme {
+  --color-*: initial;
+  --color-bone: #f6f4ef;
+  --color-ink: #0a0a0a;
+  --color-graphite: #1c1c1c;
+  --color-stone: #8a8780;
+  --color-line: #e3e0d8;
+  --color-line-dark: #2a2a2a;
+
+  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", Inter, system-ui, ui-sans-serif, sans-serif;
+
+  /* Tipografía — escala editorial */
+  --text-caps: 0.6875rem; /* 11px — nav, etiquetas, precios, botones */
+  --text-caps--line-height: 1.5;
+  --text-caps-lg: 0.75rem; /* 12px */
+  --text-caps-lg--line-height: 1.5;
+  --text-body: 0.9375rem; /* 15px */
+  --text-body--line-height: 1.6;
+  --text-hero: clamp(3.25rem, 18vw, 16.5rem); /* wordmark del hero */
+  --text-hero--line-height: 0.84;
+  --text-section: clamp(2rem, 5vw, 4rem); /* titulares de sección */
+  --text-section--line-height: 1.05;
+  --text-editorial: clamp(1.9rem, 4.6vw, 3.75rem); /* frase de campaña */
+  --text-editorial--line-height: 1.18;
+  --text-manifesto: clamp(1.6rem, 3.4vw, 2.75rem);
+  --text-manifesto--line-height: 1.45;
+  --text-menu: clamp(2.4rem, 10vw, 4.25rem); /* overlay móvil */
+  --text-menu--line-height: 1.1;
+  --text-wordmark: 21.5vw; /* firma gigante del footer */
+  --text-wordmark--line-height: 0.8;
+  --text-product: clamp(1.75rem, 3vw, 2.5rem);
+  --text-product--line-height: 1.1;
+
+  --tracking-caps: 0.16em;
+  --tracking-caps-wide: 0.22em;
+  --tracking-display: -0.02em;
+
+  /* Layout */
+  --container-wrap: 90rem; /* 1440px */
+  --spacing-gutter: clamp(1.25rem, 6vw, 6rem); /* márgenes laterales 5–7vw */
+  --spacing-section: clamp(4.5rem, 11vw, 10rem); /* respiración vertical 72–160px */
+  --spacing-section-sm: clamp(3.5rem, 8vw, 7rem);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ----------------------------------------------------------------
+   Base
+----------------------------------------------------------------- */
+@layer base {
+  html {
+    background-color: var(--color-ink); /* evita flash blanco entre transiciones */
+    scroll-behavior: auto; /* el smooth lo gestiona Lenis */
+  }
+
+  body {
+    background-color: var(--color-bone);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100svh;
+  }
+
+  ::selection {
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+  }
+
+  /* Focus hairline, coherente con la estética */
+  :focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  img {
+    display: block;
+  }
+
+  /* Estados iniciales de animación — solo si hay JS y el usuario acepta motion.
+     Sin JS o con reduced-motion, todo es visible desde el primer pixel. */
+  @media (prefers-reduced-motion: no-preference) {
+    html.js [data-reveal],
+    html.js [data-reveal-item] {
+      opacity: 0;
+    }
+    html.js [data-line] {
+      overflow: hidden;
+    }
+    html.js [data-line] > .line-in {
+      transform: translateY(115%);
+    }
+    html.js [data-word] {
+      opacity: 0.14;
+    }
+    html.js [data-hero-fade] {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+  [data-line] {
+    display: block;
+  }
+  [data-line] > .line-in {
+    display: block;
+    will-change: transform;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Componentes de la casa
+----------------------------------------------------------------- */
+@layer components {
+  /* Regla tipográfica: MAYÚSCULAS 11px, tracking amplio */
+  .caps {
+    font-family: var(--font-sans);
+    font-size: var(--text-caps);
+    line-height: var(--text-caps--line-height);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .wrap {
+    margin-inline: auto;
+    max-width: var(--container-wrap);
+    padding-inline: var(--spacing-gutter);
+  }
+
+  /* Botón píldora — única curva permitida del sitio */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 2.75rem; /* target táctil 44px */
+    padding: 0.875rem 2.25rem;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    font-family: var(--font-sans);
+    font-size: var(--text-caps);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.35s var(--ease-out-soft),
+      color 0.35s var(--ease-out-soft),
+      border-color 0.35s var(--ease-out-soft);
+  }
+  .btn-bone {
+    background-color: var(--color-bone);
+    border-color: var(--color-bone);
+    color: var(--color-ink);
+  }
+  .btn-bone:hover {
+    background-color: transparent;
+    color: var(--color-bone);
+  }
+  .btn-ink {
+    background-color: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-bone);
+  }
+  .btn-ink:hover {
+    background-color: transparent;
+    color: var(--color-ink);
+  }
+
+  /* Subrayado que se dibuja de izquierda a derecha */
+  .u-link {
+    position: relative;
+    display: inline-block;
+  }
+  .u-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -0.2em;
+    width: 100%;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.35s var(--ease-out-soft);
+  }
+  .u-link:hover::after,
+  .u-link:focus-visible::after,
+  .u-link[aria-current="page"]::after,
+  .u-link.is-active::after,
+  .group:hover .u-link::after {
+    transform: scaleX(1);
+  }
+
+  /* Imagen con zoom contenido (categorías, lookbook) */
+  .zoom-frame {
+    overflow: hidden;
+  }
+  .zoom-frame img {
+    transition: transform 0.6s var(--ease-out-soft);
+  }
+  @media (hover: hover) {
+    .zoom-frame:hover img,
+    .group:hover .zoom-frame img {
+      transform: scale(1.04);
+    }
+  }
+
+  /* Marquee infinito del manifiesto */
+  .marquee {
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+  }
+  .marquee-track {
+    display: flex;
+    flex-shrink: 0;
+    min-width: 100%;
+    align-items: baseline;
+    animation: marquee 70s linear infinite;
+  }
+  @keyframes marquee {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+    }
+  }
+
+  /* Texto en contorno (outline) */
+  .text-outline {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--color-line-dark);
+  }
+
+  /* Parallax: la imagen vive sobreescalada dentro de un marco con overflow hidden */
+  .parallax-frame {
+    overflow: hidden;
+    position: relative;
+  }
+  .parallax-frame [data-parallax] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    scale: 1.14;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .parallax-frame [data-parallax] {
+      scale: 1;
+    }
+  }
+
+  /* Acordeones hairline (detalles de producto) */
+  .acc {
+    border-top: 1px solid var(--color-line);
+  }
+  .acc:last-of-type {
+    border-bottom: 1px solid var(--color-line);
+  }
+  .acc > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.125rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .acc > summary::-webkit-details-marker {
+    display: none;
+  }
+  .acc > summary::after {
+    content: "+";
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--color-stone);
+    transition: transform 0.3s var(--ease-out-soft);
+  }
+  .acc[open] > summary::after {
+    content: "−";
+  }
+
+  /* Skip link */
+  .skip-link {
+    position: fixed;
+    top: -100%;
+    left: var(--spacing-gutter);
+    z-index: 100;
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+    padding: 0.875rem 1.5rem;
+  }
+  .skip-link:focus-visible {
+    top: 0.75rem;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Header — transparente arriba, fondo hueso al hacer scroll
+----------------------------------------------------------------- */
+#site-header {
+  --header-fg: var(--color-ink);
+  color: var(--header-fg);
+  background-color: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 0.45s var(--ease-out-soft),
+    color 0.45s var(--ease-out-soft),
+    border-color 0.45s var(--ease-out-soft);
+}
+#site-header[data-theme="dark"] {
+  --header-fg: var(--color-bone);
+}
+html.is-scrolled #site-header {
+  --header-fg: var(--color-ink);
+  background-color: var(--color-bone);
+  border-bottom-color: var(--color-line);
+}
+html[data-menu-open] #site-header {
+  --header-fg: var(--color-bone);
+  background-color: transparent;
+  border-bottom-color: transparent;
+}
+html[data-menu-open] body {
+  overflow: hidden;
+}
+
+/* Preloader oculto si la sesión ya lo vio (lo decide un script inline en <head>) */
+html[data-preloader="done"] #preloader {
+  display: none;
+}
+
+/* Lenis (smooth scroll) */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}

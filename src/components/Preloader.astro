@@ -1,0 +1,24 @@
+---
+/**
+ * Pantalla negra con el wordmark y un contador; al completar sube como
+ * cortina (expo.out, 0.9s). Solo una vez por sesión: app.ts lo gestiona
+ * con sessionStorage, y un script inline en <head> evita cualquier flash
+ * en visitas repetidas (html[data-preloader="done"]).
+ */
+---
+
+<div
+  id="preloader"
+  class="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-ink text-bone"
+  aria-hidden="true"
+>
+  <p data-mark class="font-display text-[clamp(2.5rem,8vw,5rem)] tracking-display">
+    ENIGMA<sup class="text-[0.4em]">®</sup>
+  </p>
+  <p class="caps absolute right-[var(--spacing-gutter)] bottom-10 text-stone">
+    <span data-counter>000</span> / 100
+  </p>
+  <div class="absolute bottom-0 left-0 h-px w-full bg-graphite">
+    <div data-bar class="h-px w-full origin-left scale-x-0 bg-bone"></div>
+  </div>
+</div>
