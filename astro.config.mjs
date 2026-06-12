@@ -10,6 +10,9 @@ export default defineConfig({
   // (con caché de 60 s en src/lib/db.ts).
   output: 'server',
   adapter: vercel(),
+  // El check de origin de Astro bloquea los multipart detrás del proxy de
+  // Vercel (sube comprobantes). Los endpoints validan sus propios datos.
+  security: { checkOrigin: false },
   vite: {
     plugins: [tailwindcss()],
   },
