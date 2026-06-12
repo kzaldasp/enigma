@@ -2,9 +2,10 @@
 import Base from '../layouts/Base.astro';
 import ProductCard from '../components/ProductCard.astro';
 import { getProducts } from '../lib/products';
-import { CATEGORIES, CATEGORY_LABELS } from '../lib/site';
+import { getCategories } from '../lib/categories';
 
 const products = await getProducts();
+const categories = await getCategories();
 const total = products.length;
 
 const itemListLd = JSON.stringify({
@@ -45,14 +46,14 @@ const itemListLd = JSON.stringify({
           TODO
         </button>
         {
-          CATEGORIES.map((category) => (
+          categories.map((category) => (
             <button
               type="button"
               class="u-link caps min-h-11"
-              data-filter={category}
+              data-filter={category.slug}
               aria-pressed="false"
             >
-              {CATEGORY_LABELS[category]}
+              {category.label}
             </button>
           ))
         }

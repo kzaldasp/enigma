@@ -9,15 +9,8 @@ export const SITE_NAME = 'ENIGMA';
 export const SITE_DESCRIPTION =
   'ENIGMA® — ropa contemporánea. Piezas limitadas, producción consciente. Lo esencial no se explica: se lleva puesto.';
 
-/** Mismo orden en que se muestran filtros y bloques de categoría. */
-export const CATEGORIES = ['superior', 'inferior', 'accesorios'] as const;
-export type Category = (typeof CATEGORIES)[number];
-
-export const CATEGORY_LABELS: Record<Category, string> = {
-  superior: 'PARTE SUPERIOR',
-  inferior: 'PARTE INFERIOR',
-  accesorios: 'ACCESORIOS',
-};
+/** Las categorías son editables desde el admin — ver src/lib/categories.ts. */
+export type Category = string;
 
 export function waLink(number: string, message: string): string {
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;

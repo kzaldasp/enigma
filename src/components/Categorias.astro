@@ -1,30 +1,64 @@
 ---
 import { Image } from 'astro:assets';
-import { CATEGORIES, CATEGORY_LABELS } from '../lib/site';
+import { getCategories } from '../lib/categories';
+import { getProducts } from '../lib/products';
 import { categoryImage } from '../lib/images';
+
+const categories = await getCategories();
+const products = await getProducts();
+
+/**
+ * Imagen del bloque: 1) la subida en el admin, 2) el asset local si el slug
+ * coincide (superior/inferior/accesorios), 3) la primera foto de un producto
+ * de esa categoría. Sin nada de eso, el bloque se omite.
+ */
+function localAsset(slug: string) {
+  try {
+    return categoryImage(slug);
+  } catch {
+    return null;
+  }
+}
+
+const blocks = categories
+  .map((cat) => {
+    const local = cat.imageUrl ? null : localAsset(cat.slug);
+    const productFallback = products.find((p) => p.category === cat.slug)?.images[0] ?? null;
+    return { ...cat, local, url: cat.imageUrl ?? (local ? null : productFallback) };
+  })
+  .filter((b) => b.local || b.url);
 ---
 
 <section class="bg-bone py-section text-ink" aria-label="Categorías">
   <div class="wrap">
     <div class="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3" data-reveal-group>
       {
-        CATEGORIES.map((category, i) => (
+        blocks.map((cat, i) => (
           <a
-            href={`/catalogo?categoria=${category}`}
+            href={`/catalogo?categoria=${cat.slug}`}
             class="group block"
             data-reveal-item
           >
             <div class="zoom-frame aspect-[4/5]">
-              <Image
-                src={categoryImage(category)}
-                alt={`Categoría ${CATEGORY_LABELS[category].toLowerCase()}`}
-                class="h-full w-full object-cover"
-                loading="lazy"
-              />
+              {cat.local ? (
+                <Image
+                  src={cat.local}
+                  alt={`Categoría ${cat.label.toLowerCase()}`}
+                  class="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <img
+                  src={cat.url!}
+                  alt={`Categoría ${cat.label.toLowerCase()}`}
+                  class="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              )}
             </div>
             <div class="mt-4 flex items-baseline justify-between">
               <h3 class="caps">
-                <span class="u-link">{CATEGORY_LABELS[category]}</span>
+                <span class="u-link">{cat.label}</span>
               </h3>
               <span class="caps text-stone">0{i + 1}</span>
             </div>

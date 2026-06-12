@@ -13,7 +13,8 @@ export type Product = {
   /** URLs absolutas (Cloudinary) o relativas a public/ (seed inicial). */
   images: string[];
   category: Category;
-  badge: 'NUEVO' | 'AGOTADO' | null;
+  /** Texto libre desde el admin; 'AGOTADO' bloquea compra, 'NUEVO' destaca. */
+  badge: string | null;
   /** AGOTADO manual o todas las tallas con stock controlado en 0. */
   soldOut: boolean;
 };
@@ -51,7 +52,7 @@ export async function getProducts(): Promise<Product[]> {
 
     return products.rows.map((p) => {
       const id = Number(p.id);
-      const badge = p.badge ? (String(p.badge) as 'NUEVO' | 'AGOTADO') : null;
+      const badge = p.badge ? String(p.badge) : null;
       const productSizes = sizesBy.get(id) ?? [];
       return {
         id,
