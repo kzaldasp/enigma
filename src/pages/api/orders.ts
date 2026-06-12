@@ -5,6 +5,7 @@ import { getSiteContent } from '../../lib/content';
 import { computeTotals } from '../../lib/totals';
 import { findCoupon } from '../../lib/coupons';
 import { notifyOwner } from '../../lib/notify';
+import { sendWhatsApp } from '../../lib/whatsapp';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
 
 export const prerender = false;
@@ -52,6 +53,30 @@ export const POST: APIRoute = async ({ request }) => {
   if (items.length > 30) return json({ error: 'Demasiados items' }, 400);
 
   // Valida contra la DB (precio y stock frescos, nunca los del cliente).
+  // Dos consultas en total (productos + tallas), no dos por item.
+  const slugs = [...new Set(items.map((it) => String(it.slug)))];
+  const pres = await db().execute({
+    sql: `SELECT id, slug, name, price, badge FROM products
+          WHERE slug IN (${slugs.map(() => '?').join(',')}) AND active = 1`,
+    args: slugs,
+  });
+  const bySlug = new Map(pres.rows.map((p) => [String(p.slug), p]));
+
+  const productIds = pres.rows.map((p) => Number(p.id));
+  const sizesByProduct = new Map<number, Map<string, number | null>>();
+  if (productIds.length > 0) {
+    const sres = await db().execute({
+      sql: `SELECT product_id, size, stock FROM product_sizes
+            WHERE product_id IN (${productIds.map(() => '?').join(',')})`,
+      args: productIds,
+    });
+    for (const row of sres.rows) {
+      const pid = Number(row.product_id);
+      if (!sizesByProduct.has(pid)) sizesByProduct.set(pid, new Map());
+      sizesByProduct.get(pid)!.set(String(row.size), row.stock === null ? null : Number(row.stock));
+    }
+  }
+
   const validated: {
     product_id: number;
     product_name: string;
@@ -65,11 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!Number.isFinite(qty) || qty < 1 || qty > 20) {
       return json({ error: 'Cantidad inválida' }, 400);
     }
-    const res = await db().execute({
-      sql: 'SELECT id, name, price, badge FROM products WHERE slug = ? AND active = 1',
-      args: [String(it.slug)],
-    });
-    const product = res.rows[0];
+    const product = bySlug.get(String(it.slug));
     if (!product) return json({ error: `Producto no disponible: ${it.slug}` }, 400);
     if (String(product.badge ?? '') === 'AGOTADO') {
       return json({ error: `${String(product.name)} está agotado` }, 400);
@@ -77,13 +98,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     const size = it.size ? String(it.size) : null;
     if (size) {
-      const sres = await db().execute({
-        sql: 'SELECT stock FROM product_sizes WHERE product_id = ? AND size = ?',
-        args: [Number(product.id), size],
-      });
-      const row = sres.rows[0];
-      if (!row) return json({ error: `Talla ${size} no existe para ${String(product.name)}` }, 400);
-      if (row.stock !== null && Number(row.stock) < qty) {
+      const sizes = sizesByProduct.get(Number(product.id));
+      if (!sizes || !sizes.has(size)) {
+        return json({ error: `Talla ${size} no existe para ${String(product.name)}` }, 400);
+      }
+      const stock = sizes.get(size)!;
+      if (stock !== null && stock < qty) {
         return json(
           { error: `Stock insuficiente de ${String(product.name)} talla ${size}` },
           400,
@@ -160,6 +180,13 @@ export const POST: APIRoute = async ({ request }) => {
     '',
     `Revísalo en el admin → Pedidos web`,
   ]);
+
+  const trackUrl = new URL(`/pedido/${code}`, request.url).toString();
+  await sendWhatsApp(
+    phone,
+    `ENIGMA — Hola ${name}, recibimos tu pedido ${code} por $${totals.total.toFixed(2)}. ` +
+      `Realiza la transferencia y sube tu comprobante aquí: ${trackUrl}`,
+  );
 
   return json({ code });
 };

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { db } from '../../lib/db';
 import { uploadReceipt } from '../../lib/upload';
 import { notifyOwner } from '../../lib/notify';
+import { sendWhatsApp } from '../../lib/whatsapp';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
 
 export const prerender = false;
@@ -37,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!file.type.startsWith('image/')) return json({ error: 'Solo se permiten imágenes' }, 400);
 
   const res = await db().execute({
-    sql: 'SELECT id, status FROM orders WHERE code = ?',
+    sql: 'SELECT id, status, customer_name, customer_phone FROM orders WHERE code = ?',
     args: [code],
   });
   const order = res.rows[0];
@@ -69,6 +70,13 @@ export const POST: APIRoute = async ({ request }) => {
       `Pedido: ${code}`,
       `Revísalo y valida el pago en el admin → Pedidos web`,
     ]);
+
+    await sendWhatsApp(
+      String(order.customer_phone),
+      `ENIGMA — Recibimos el comprobante de tu pedido ${code}. ` +
+        `Lo estamos verificando y te avisamos apenas se confirme el pago. ` +
+        `Sigue tu pedido aquí: ${new URL(`/pedido/${code}`, request.url).toString()}`,
+    );
 
     return json({ ok: true });
   } catch {
