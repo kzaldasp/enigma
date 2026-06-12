@@ -20,6 +20,7 @@ export const NAV = [
   { label: 'INICIO', href: '/' },
   { label: 'CATÁLOGO', href: '/catalogo' },
   { label: 'LOOKBOOK', href: '/lookbook' },
+  { label: 'ARCHIVO', href: '/archivo' },
 ] as const;
 
 export function formatPrice(price: number): string {

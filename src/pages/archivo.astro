@@ -1,0 +1,82 @@
+---
+import Base from '../layouts/Base.astro';
+import { getGallery } from '../lib/gallery';
+
+const items = await getGallery();
+---
+
+<Base
+  title="Archivo — ENIGMA®"
+  description="El museo de ENIGMA: los modelos que van saliendo, pieza por pieza. Series cortas que no se repiten."
+>
+  <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
+    <div class="wrap">
+      <header class="max-w-3xl" data-reveal>
+        <p class="caps text-stone">EL MUSEO DE LA MARCA</p>
+        <h1 class="mt-4 font-display text-section tracking-display">Archivo</h1>
+        <p class="mt-6 max-w-md text-stone">
+          Cada modelo que sale queda registrado aquí. Las series son cortas y no se
+          repiten: lo que ves es lo que existió.
+        </p>
+      </header>
+
+      {
+        items.length === 0 ? (
+          <p class="caps mt-20 text-stone" data-reveal>
+            EL ARCHIVO ABRE PRONTO — LAS PRIMERAS PIEZAS ESTÁN EN CAMINO.
+          </p>
+        ) : (
+          <div
+            class="mt-16 columns-1 gap-6 sm:columns-2 md:gap-8 lg:columns-3"
+            data-reveal-group
+          >
+            {items.map((item, i) => {
+              const media =
+                item.type === 'video' ? (
+                  <video
+                    src={item.url}
+                    class="w-full"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    aria-label={item.caption ?? `Pieza ${i + 1} del archivo`}
+                  />
+                ) : (
+                  <img
+                    src={item.url}
+                    alt={item.caption ?? `Pieza ${i + 1} del archivo`}
+                    class="w-full"
+                    loading={i < 3 ? 'eager' : 'lazy'}
+                  />
+                );
+              const plaque = (
+                <div class="mt-3 flex items-baseline justify-between gap-4">
+                  <p class="caps">
+                    {item.link ? <span class="u-link">{item.caption ?? 'VER PIEZA'}</span> : (item.caption ?? '')}
+                  </p>
+                  <span class="caps text-stone">{String(i + 1).padStart(2, '0')}</span>
+                </div>
+              );
+              return item.link ? (
+                <a
+                  href={item.link}
+                  class="group mb-10 block break-inside-avoid md:mb-12"
+                  data-reveal-item
+                >
+                  <div class="zoom-frame">{media}</div>
+                  {plaque}
+                </a>
+              ) : (
+                <figure class="mb-10 break-inside-avoid md:mb-12" data-reveal-item>
+                  <div class="zoom-frame">{media}</div>
+                  {plaque}
+                </figure>
+              );
+            })}
+          </div>
+        )
+      }
+    </div>
+  </section>
+</Base>
