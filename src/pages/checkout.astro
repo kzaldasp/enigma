@@ -1,5 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getSiteContent } from '../lib/content';
+
+const site = await getSiteContent();
 ---
 
 <Base title="Finalizar compra — ENIGMA®" description="Completa tu pedido." noindex>
@@ -76,13 +79,52 @@ import Base from '../layouts/Base.astro';
           </p>
         </form>
 
-        <aside class="lg:border-l lg:border-line lg:pl-12">
+        <aside
+          class="lg:border-l lg:border-line lg:pl-12"
+          id="checkout-config"
+          data-shipping-cost={site.shippingCost}
+          data-free-from={site.shippingFreeFrom}
+        >
           <h2 class="caps text-stone">Tu pedido</h2>
           <ul class="mt-4" data-checkout-items></ul>
-          <p class="caps mt-6 flex justify-between text-lg">
-            <span>TOTAL</span>
-            <span data-checkout-total></span>
-          </p>
+
+          <!-- Cupón -->
+          <div class="mt-8 flex items-end gap-4">
+            <div class="flex-1">
+              <label for="coupon-code" class="caps text-stone">Cupón (opcional)</label>
+              <input
+                id="coupon-code"
+                data-coupon-input
+                autocomplete="off"
+                placeholder="ENIGMA10"
+                class="mt-2 w-full border-b border-ink bg-transparent pb-2 text-body uppercase placeholder:text-stone focus:outline-none"
+              />
+            </div>
+            <button type="button" data-coupon-apply class="u-link caps min-h-11 shrink-0">
+              APLICAR
+            </button>
+          </div>
+          <p data-coupon-msg hidden class="caps mt-2 text-stone" role="status"></p>
+
+          <!-- Totales -->
+          <div class="caps mt-8 space-y-3 border-t border-line pt-6">
+            <p class="flex justify-between text-stone">
+              <span>SUBTOTAL</span>
+              <span data-checkout-subtotal></span>
+            </p>
+            <p class="flex justify-between text-stone">
+              <span>ENVÍO</span>
+              <span data-checkout-shipping></span>
+            </p>
+            <p class="flex justify-between text-stone" data-checkout-discount-row hidden>
+              <span>DESCUENTO</span>
+              <span data-checkout-discount></span>
+            </p>
+            <p class="flex justify-between text-lg">
+              <span>TOTAL</span>
+              <span data-checkout-total></span>
+            </p>
+          </div>
         </aside>
       </div>
     </div>

@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import CampaignEditorial from '../../components/CampaignEditorial.astro';
 import { campaignImage } from '../../lib/images';
 import { getCampaigns } from '../../lib/campaigns';
+import { cdnImage, cdnVideo } from '../../lib/cdn';
 
 /**
  * Lookbook: muestra la campaña publicada más reciente (admin → Campañas).
@@ -95,7 +96,7 @@ const description = current?.description
                     <div class="zoom-frame aspect-[3/4]">
                       {cover.type === 'video' ? (
                         <video
-                          src={cover.url}
+                          src={cdnVideo(cover.url)}
                           class="h-full w-full object-cover"
                           autoplay
                           muted
@@ -104,7 +105,7 @@ const description = current?.description
                         />
                       ) : (
                         <img
-                          src={cover.url}
+                          src={cdnImage(cover.url, 700)}
                           alt={`Campaña ${c.title}`}
                           class="h-full w-full object-cover"
                           loading="lazy"

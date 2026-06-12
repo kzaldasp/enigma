@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/db';
 import { uploadReceipt } from '../../lib/upload';
+import { notifyOwner } from '../../lib/notify';
+import { rateLimit, clientIp } from '../../lib/ratelimit';
 
 export const prerender = false;
 
@@ -13,6 +15,10 @@ const json = (data: unknown, status = 200) =>
   });
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!rateLimit(`comprobante:${clientIp(request)}`, 10, 10 * 60 * 1000)) {
+    return json({ error: 'Demasiados intentos — espera unos minutos' }, 429);
+  }
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -44,10 +50,26 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const url = await uploadReceipt(file);
-    await db().execute({
-      sql: `UPDATE orders SET receipt_url = ?, status = 'comprobante_subido' WHERE id = ?`,
-      args: [url, Number(order.id)],
-    });
+    await db().batch(
+      [
+        {
+          sql: `UPDATE orders SET receipt_url = ?, status = 'comprobante_subido' WHERE id = ?`,
+          args: [url, Number(order.id)],
+        },
+        {
+          sql: `INSERT INTO order_events (order_id, event) VALUES (?, 'comprobante_subido')`,
+          args: [Number(order.id)],
+        },
+      ],
+      'write',
+    );
+
+    await notifyOwner(`Comprobante subido — pedido ${code}`, [
+      `El cliente subió su comprobante de transferencia.`,
+      `Pedido: ${code}`,
+      `Revísalo y valida el pago en el admin → Pedidos web`,
+    ]);
+
     return json({ ok: true });
   } catch {
     return json({ error: 'No pudimos guardar el comprobante, intenta de nuevo' }, 500);

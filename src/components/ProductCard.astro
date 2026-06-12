@@ -1,6 +1,7 @@
 ---
 import type { Product } from '../lib/products';
 import { formatPrice } from '../lib/site';
+import { cdnImage, cdnVideo } from '../lib/cdn';
 
 interface Props {
   product: Product;
@@ -27,7 +28,7 @@ const alternate = media[1] ?? null;
     {
       front?.type === 'video' ? (
         <video
-          src={front.url}
+          src={cdnVideo(front.url)}
           class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
           autoplay
           muted
@@ -37,7 +38,7 @@ const alternate = media[1] ?? null;
         />
       ) : (
         <img
-          src={front?.url}
+          src={front ? cdnImage(front.url, 800) : undefined}
           alt={`${title}, vista de la pieza`}
           class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
           loading={eager ? 'eager' : 'lazy'}
@@ -48,7 +49,7 @@ const alternate = media[1] ?? null;
       alternate &&
         (alternate.type === 'video' ? (
           <video
-            src={alternate.url}
+            src={cdnVideo(alternate.url)}
             class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
             autoplay
             muted
@@ -58,7 +59,7 @@ const alternate = media[1] ?? null;
           />
         ) : (
           <img
-            src={alternate.url}
+            src={cdnImage(alternate.url, 800)}
             alt=""
             aria-hidden="true"
             class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"

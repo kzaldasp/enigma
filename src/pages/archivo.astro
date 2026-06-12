@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getGallery } from '../lib/gallery';
+import { cdnImage, cdnVideo } from '../lib/cdn';
 
 const items = await getGallery();
 ---
@@ -34,7 +35,7 @@ const items = await getGallery();
               const media =
                 item.type === 'video' ? (
                   <video
-                    src={item.url}
+                    src={cdnVideo(item.url)}
                     class="w-full"
                     autoplay
                     muted
@@ -44,7 +45,7 @@ const items = await getGallery();
                   />
                 ) : (
                   <img
-                    src={item.url}
+                    src={cdnImage(item.url, 900)}
                     alt={item.caption ?? `Pieza ${i + 1} del archivo`}
                     class="w-full"
                     loading={i < 3 ? 'eager' : 'lazy'}

@@ -5,6 +5,7 @@ import { getProducts, getProductBySlug, pickRelated } from '../../lib/products';
 import { getSiteContent } from '../../lib/content';
 import { categoryLabel } from '../../lib/categories';
 import { formatPrice } from '../../lib/site';
+import { cdnImage, cdnVideo } from '../../lib/cdn';
 
 const { slug } = Astro.params;
 const product = slug ? await getProductBySlug(slug) : undefined;
@@ -80,7 +81,7 @@ const jsonLd = JSON.stringify([
             media.map((m, i) =>
               m.type === 'video' ? (
                 <video
-                  src={m.url}
+                  src={cdnVideo(m.url)}
                   class="w-full"
                   autoplay
                   muted
@@ -90,7 +91,7 @@ const jsonLd = JSON.stringify([
                 />
               ) : (
                 <img
-                  src={m.url}
+                  src={cdnImage(m.url, 1400)}
                   alt={i === 0 ? `${title}, vista de la pieza` : `${title}, pieza en modelo`}
                   class="w-full"
                   loading={i === 0 ? 'eager' : 'lazy'}

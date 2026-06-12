@@ -2,9 +2,11 @@
 import { Image } from 'astro:assets';
 import { campaignImage } from '../lib/images';
 import { getSiteContent } from '../lib/content';
+import { cdnImage } from '../lib/cdn';
 
-const hero = campaignImage('hero');
-const { seasonLine } = await getSiteContent();
+const { seasonLine, heroImageUrl } = await getSiteContent();
+// Imagen subida desde el admin (Contenido) o el asset local por defecto.
+const hero = heroImageUrl ? null : campaignImage('hero');
 ---
 
 <section
@@ -12,13 +14,25 @@ const { seasonLine } = await getSiteContent();
   data-lines
   class="parallax-frame relative flex h-svh min-h-[34rem] flex-col justify-end bg-ink text-bone"
 >
-  <Image
-    src={hero}
-    alt="Campaña ENIGMA verano 2026: figura en penumbra dentro del estudio"
-    data-parallax
-    loading="eager"
-    fetchpriority="high"
-  />
+  {
+    hero ? (
+      <Image
+        src={hero}
+        alt="Campaña ENIGMA: figura en penumbra dentro del estudio"
+        data-parallax
+        loading="eager"
+        fetchpriority="high"
+      />
+    ) : (
+      <img
+        src={cdnImage(heroImageUrl, 2000)}
+        alt="Campaña ENIGMA"
+        data-parallax
+        loading="eager"
+        fetchpriority="high"
+      />
+    )
+  }
   <!-- Overlay negro al 30 % -->
   <div class="absolute inset-0 bg-ink/30" aria-hidden="true"></div>
 

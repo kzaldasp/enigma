@@ -1,5 +1,6 @@
 ---
 import type { Campaign } from '../lib/campaigns';
+import { cdnImage, cdnVideo } from '../lib/cdn';
 
 /**
  * Recorrido editorial de una campaña: anchos distintos, alineación
@@ -31,7 +32,7 @@ const LAYOUT = [
           <div class={`parallax-frame ${layout.aspect}`}>
             {item.type === 'video' ? (
               <video
-                src={item.url}
+                src={cdnVideo(item.url)}
                 class="absolute inset-0 h-full w-full object-cover"
                 autoplay
                 muted
@@ -41,7 +42,7 @@ const LAYOUT = [
               />
             ) : (
               <img
-                src={item.url}
+                src={cdnImage(item.url, 1600)}
                 alt={
                   item.caption
                     ? `Look ${String(i + 1).padStart(2, '0')}: ${item.caption.toLowerCase()}`

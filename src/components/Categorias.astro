@@ -3,6 +3,7 @@ import { Image } from 'astro:assets';
 import { getCategories } from '../lib/categories';
 import { getProducts } from '../lib/products';
 import { categoryImage } from '../lib/images';
+import { cdnImage } from '../lib/cdn';
 
 const categories = await getCategories();
 const products = await getProducts();
@@ -49,7 +50,7 @@ const blocks = categories
                 />
               ) : (
                 <img
-                  src={cat.url!}
+                  src={cdnImage(cat.url!, 800)}
                   alt={`Categoría ${cat.label.toLowerCase()}`}
                   class="h-full w-full object-cover"
                   loading="lazy"

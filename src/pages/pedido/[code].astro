@@ -14,10 +14,29 @@ if (!order) {
   return Astro.redirect('/404');
 }
 
-const items = await db().execute({
-  sql: 'SELECT * FROM order_items WHERE order_id = ?',
-  args: [Number(order.id)],
-});
+const [items, events] = await Promise.all([
+  db().execute({
+    sql: 'SELECT * FROM order_items WHERE order_id = ?',
+    args: [Number(order.id)],
+  }),
+  db().execute({
+    sql: 'SELECT event, created_at FROM order_events WHERE order_id = ? ORDER BY created_at',
+    args: [Number(order.id)],
+  }),
+]);
+
+// Fecha por evento (la última si se repite, ej. re-subida de comprobante).
+const eventDates = new Map<string, string>();
+for (const e of events.rows) {
+  eventDates.set(String(e.event), String(e.created_at));
+}
+const stepDate = (event: string): string | null => {
+  const iso = eventDates.get(event);
+  if (!iso) return null;
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+};
+const STEP_EVENTS = ['creado', 'comprobante_subido', 'validado', 'preparando', 'enviado', 'entregado'];
 
 const site = await getSiteContent();
 const status = String(order.status);
@@ -86,6 +105,9 @@ const showBankAndUpload = status === 'pendiente';
                   <p class={`caps ${done || current ? '' : 'text-stone'}`}>
                     {step.title}
                     {current && <span class="text-stone"> — AHORA</span>}
+                    {(done || current) && stepDate(STEP_EVENTS[i]) && (
+                      <span class="text-stone"> · {stepDate(STEP_EVENTS[i])}</span>
+                    )}
                   </p>
                   {(current || (i === 4 && trackingNote && done)) && (
                     <p class="mt-1 max-w-md text-sm text-stone">{step.text}</p>
@@ -109,6 +131,22 @@ const showBankAndUpload = status === 'pendiente';
               <p class="caps text-stone">{fmt(Number(it.unit_price) * Number(it.quantity))}</p>
             </div>
           ))
+        }
+        {
+          Number(order.shipping) > 0 && (
+            <div class="flex justify-between gap-4 border-b border-line py-4">
+              <p class="caps text-stone">ENVÍO</p>
+              <p class="caps text-stone">{fmt(Number(order.shipping))}</p>
+            </div>
+          )
+        }
+        {
+          Number(order.discount) > 0 && (
+            <div class="flex justify-between gap-4 border-b border-line py-4">
+              <p class="caps text-stone">DESCUENTO{order.coupon_code ? ` (${order.coupon_code})` : ''}</p>
+              <p class="caps text-stone">−{fmt(Number(order.discount))}</p>
+            </div>
+          )
         }
         <div class="flex justify-between gap-4 py-4">
           <p class="caps">TOTAL</p>

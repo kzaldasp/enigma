@@ -1,6 +1,11 @@
 import type { APIRoute } from 'astro';
 import { randomBytes } from 'node:crypto';
 import { db, invalidateCache } from '../../lib/db';
+import { getSiteContent } from '../../lib/content';
+import { computeTotals } from '../../lib/totals';
+import { findCoupon } from '../../lib/coupons';
+import { notifyOwner } from '../../lib/notify';
+import { rateLimit, clientIp } from '../../lib/ratelimit';
 
 export const prerender = false;
 
@@ -22,7 +27,15 @@ const json = (data: unknown, status = 200) =>
   });
 
 export const POST: APIRoute = async ({ request }) => {
-  let body: { customer?: Record<string, unknown>; items?: IncomingItem[] };
+  if (!rateLimit(`orders:${clientIp(request)}`, 8, 10 * 60 * 1000)) {
+    return json({ error: 'Demasiados intentos — espera unos minutos' }, 429);
+  }
+
+  let body: {
+    customer?: Record<string, unknown>;
+    items?: IncomingItem[];
+    coupon?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -87,33 +100,66 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  const total = validated.reduce((s, it) => s + it.unit_price * it.quantity, 0);
+  const site = await getSiteContent();
+  const coupon = await findCoupon(String(body.coupon ?? ''));
+  const subtotal = validated.reduce((s, it) => s + it.unit_price * it.quantity, 0);
+  const totals = computeTotals({
+    subtotal,
+    shippingCost: site.shippingCost,
+    freeShippingFrom: site.shippingFreeFrom,
+    coupon,
+  });
   const code = orderCode();
 
-  const orderRes = await db().execute({
-    sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, address, city, notes, total)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [
-      code,
-      name,
-      phone,
-      String(customer.email ?? '').trim() || null,
-      String(customer.address ?? '').trim() || null,
-      String(customer.city ?? '').trim() || null,
-      String(customer.notes ?? '').trim() || null,
-      total,
-    ],
-  });
-  const orderId = Number(orderRes.lastInsertRowid);
+  // Pedido + items + evento en una sola transacción.
+  const statements = [
+    {
+      sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, address, city, notes, total, shipping, coupon_code, discount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        code,
+        name,
+        phone,
+        String(customer.email ?? '').trim() || null,
+        String(customer.address ?? '').trim() || null,
+        String(customer.city ?? '').trim() || null,
+        String(customer.notes ?? '').trim() || null,
+        totals.total,
+        totals.shipping,
+        coupon && totals.discount > 0 ? coupon.code : null,
+        totals.discount,
+      ],
+    },
+  ];
+  const orderRes = await db().batch(statements, 'write');
+  const orderId = Number(orderRes[0].lastInsertRowid);
 
-  for (const it of validated) {
-    await db().execute({
-      sql: `INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [orderId, it.product_id, it.product_name, it.size, it.quantity, it.unit_price],
-    });
-  }
+  await db().batch(
+    [
+      ...validated.map((it) => ({
+        sql: `INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [orderId, it.product_id, it.product_name, it.size, it.quantity, it.unit_price],
+      })),
+      {
+        sql: `INSERT INTO order_events (order_id, event) VALUES (?, 'creado')`,
+        args: [orderId],
+      },
+    ],
+    'write',
+  );
 
   invalidateCache();
+
+  await notifyOwner(`Nuevo pedido ${code} — $${totals.total.toFixed(2)}`, [
+    `Pedido: ${code}`,
+    `Cliente: ${name} · ${phone}`,
+    `Total: $${totals.total.toFixed(2)} (envío $${totals.shipping.toFixed(2)}${totals.discount ? `, descuento -$${totals.discount.toFixed(2)}` : ''})`,
+    '',
+    ...validated.map((it) => `· ${it.product_name}${it.size ? ` (${it.size})` : ''} ×${it.quantity}`),
+    '',
+    `Revísalo en el admin → Pedidos web`,
+  ]);
+
   return json({ code });
 };

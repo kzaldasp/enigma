@@ -3,9 +3,10 @@ import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import vercel from '@astrojs/vercel';
 
-// Cambiar por el dominio real antes de desplegar (afecta canonical, OG y JSON-LD).
+// Dominio público (canonical, OG, JSON-LD, sitemap). Cuando tengan dominio
+// propio basta definir PUBLIC_SITE_URL en Vercel y redesplegar.
 export default defineConfig({
-  site: 'https://enigma.example',
+  site: process.env.PUBLIC_SITE_URL ?? 'https://enigma-1nor.vercel.app',
   // SSR: el catálogo y los textos viven en Turso y se leen por request
   // (con caché de 60 s en src/lib/db.ts).
   output: 'server',

@@ -24,6 +24,14 @@ export type SiteContent = {
   fontHero: string;
   /** URL css2 de Google Fonts pegada en el admin (fuentes fuera del catálogo). */
   fontCustomUrl: string;
+  /** Imagen del hero subida desde el admin; vacío = asset local. */
+  heroImageUrl: string;
+  /** Costo de envío plano en USD; 0 = gratis. */
+  shippingCost: number;
+  /** Subtotal desde el cual el envío es gratis; 0 = nunca. */
+  shippingFreeFrom: number;
+  legalTerms: string;
+  legalPrivacy: string;
 };
 
 const DEFAULTS: Record<string, string> = {
@@ -47,6 +55,13 @@ const DEFAULTS: Record<string, string> = {
   font_body: 'Inter',
   font_hero: '',
   font_custom_url: '',
+  hero_image_url: '',
+  shipping_cost: '0',
+  shipping_free_from: '',
+  legal_terms:
+    'Las compras se concretan por transferencia bancaria o WhatsApp: confirmamos disponibilidad, talla y dirección antes del pago. Los precios están en dólares estadounidenses e incluyen impuestos.\n\nCambios de talla dentro de los 15 días posteriores a la entrega, con la pieza sin uso y en su empaque original. Las series son limitadas: no garantizamos reposición.',
+  legal_privacy:
+    'Usamos tu correo únicamente para avisarte de nuevas series si te suscribes, y tu número solo para gestionar tu pedido. No compartimos datos con terceros ni usamos rastreadores de publicidad.\n\nPuedes pedir la eliminación de tus datos en cualquier momento escribiendo al correo del estudio.',
 };
 
 export async function getSiteContent(): Promise<SiteContent> {
@@ -78,6 +93,11 @@ export async function getSiteContent(): Promise<SiteContent> {
       fontBody: map.font_body,
       fontHero: map.font_hero,
       fontCustomUrl: map.font_custom_url,
+      heroImageUrl: map.hero_image_url,
+      shippingCost: Number(map.shipping_cost) || 0,
+      shippingFreeFrom: Number(map.shipping_free_from) || 0,
+      legalTerms: map.legal_terms,
+      legalPrivacy: map.legal_privacy,
     } satisfies SiteContent;
   });
 }

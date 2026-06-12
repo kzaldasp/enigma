@@ -1,5 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getSiteContent } from '../lib/content';
+
+const site = await getSiteContent();
+const paragraphs = (text: string) => text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
 ---
 
 <Base
@@ -13,29 +17,14 @@ import Base from '../layouts/Base.astro';
       <section id="terminos" class="mt-16 scroll-mt-28">
         <h2 class="caps border-t border-line pt-6">TÉRMINOS DE COMPRA</h2>
         <div class="mt-6 space-y-4 leading-relaxed text-stone">
-          <p>
-            Las compras se concretan por WhatsApp: confirmamos disponibilidad, talla y dirección
-            antes del pago. Los precios están en dólares estadounidenses e incluyen impuestos.
-          </p>
-          <p>
-            Cambios de talla dentro de los 15 días posteriores a la entrega, con la pieza sin uso y
-            en su empaque original. Las series son limitadas: no garantizamos reposición.
-          </p>
+          {paragraphs(site.legalTerms).map((p) => <p>{p}</p>)}
         </div>
       </section>
 
       <section id="privacidad" class="mt-16 scroll-mt-28">
         <h2 class="caps border-t border-line pt-6">PRIVACIDAD</h2>
         <div class="mt-6 space-y-4 leading-relaxed text-stone">
-          <p>
-            Usamos tu correo únicamente para avisarte de nuevas series si te suscribes, y tu número
-            solo para gestionar tu pedido. No compartimos datos con terceros ni usamos rastreadores
-            de publicidad.
-          </p>
-          <p>
-            Puedes pedir la eliminación de tus datos en cualquier momento escribiendo al correo del
-            estudio.
-          </p>
+          {paragraphs(site.legalPrivacy).map((p) => <p>{p}</p>)}
         </div>
       </section>
     </div>

@@ -20,6 +20,8 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { getCart, addToCart, setQty, clearCart, cartCount, cartTotal } from './cart';
+import { computeTotals, type CouponInfo } from '../lib/totals';
+import { cdnImage } from '../lib/cdn';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -454,7 +456,7 @@ function renderCartPage() {
     row.className = 'flex items-center gap-5 border-b border-line py-6';
     row.innerHTML = `
       <a href="/producto/${item.slug}" class="block w-20 shrink-0">
-        <img src="${item.image}" alt="" class="aspect-[3/4] w-full object-cover" />
+        <img src="${cdnImage(item.image, 200)}" alt="" class="aspect-[3/4] w-full object-cover" />
       </a>
       <div class="min-w-0 flex-1">
         <a href="/producto/${item.slug}" class="caps u-link">${item.title}</a>
@@ -513,8 +515,64 @@ function initCheckout(signal: AbortSignal) {
       )
       .join('');
   }
-  const totalEl = $('[data-checkout-total]');
-  if (totalEl) totalEl.textContent = fmt(cartTotal());
+
+  // Totales: envío configurable + cupón — misma lógica que el servidor.
+  const config = $('#checkout-config');
+  const shippingCost = Number(config?.dataset.shippingCost ?? 0);
+  const freeFrom = Number(config?.dataset.freeFrom ?? 0);
+  let coupon: CouponInfo | null = null;
+
+  const renderTotals = () => {
+    const totals = computeTotals({
+      subtotal: cartTotal(),
+      shippingCost,
+      freeShippingFrom: freeFrom,
+      coupon,
+    });
+    const set = (sel: string, value: string) => {
+      const el = $(sel);
+      if (el) el.textContent = value;
+    };
+    set('[data-checkout-subtotal]', fmt(totals.subtotal));
+    set('[data-checkout-shipping]', totals.shipping === 0 ? 'GRATIS' : fmt(totals.shipping));
+    set('[data-checkout-discount]', `−${fmt(totals.discount)}`);
+    set('[data-checkout-total]', fmt(totals.total));
+    $('[data-checkout-discount-row]')?.toggleAttribute('hidden', totals.discount === 0);
+  };
+  renderTotals();
+
+  // Cupón
+  const couponInput = $<HTMLInputElement>('[data-coupon-input]');
+  const couponMsg = $('[data-coupon-msg]');
+  $('[data-coupon-apply]')?.addEventListener(
+    'click',
+    async () => {
+      const code = couponInput?.value.trim().toUpperCase();
+      if (!code) return;
+      couponMsg?.setAttribute('hidden', '');
+      try {
+        const res = await fetch(`/api/coupon?code=${encodeURIComponent(code)}`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? 'Cupón no válido');
+        coupon = { code: json.code, type: json.type, value: json.value, minTotal: json.minTotal };
+        if (couponMsg) {
+          const applies = cartTotal() >= coupon.minTotal;
+          couponMsg.textContent = applies
+            ? `✓ CUPÓN ${coupon.code} APLICADO`
+            : `EL CUPÓN REQUIERE UNA COMPRA MÍNIMA DE ${fmt(coupon.minTotal)}`;
+          couponMsg.removeAttribute('hidden');
+        }
+      } catch (err) {
+        coupon = null;
+        if (couponMsg) {
+          couponMsg.textContent = (err instanceof Error ? err.message : 'CUPÓN NO VÁLIDO').toUpperCase();
+          couponMsg.removeAttribute('hidden');
+        }
+      }
+      renderTotals();
+    },
+    { signal },
+  );
 
   const errorEl = $('[data-checkout-error]');
   const submit = $<HTMLButtonElement>('button[type="submit"]', form);
@@ -543,6 +601,7 @@ function initCheckout(signal: AbortSignal) {
               notes: data.get('notes'),
             },
             items: getCart().map((i) => ({ slug: i.slug, size: i.size, qty: i.qty })),
+            coupon: coupon?.code ?? '',
           }),
         });
         const json = await res.json();
@@ -613,14 +672,36 @@ function initNewsletter(signal: AbortSignal) {
   if (!form) return;
   form.addEventListener(
     'submit',
-    (e) => {
+    async (e) => {
       e.preventDefault();
+      const email = (form.elements.namedItem('email') as HTMLInputElement | null)?.value;
+      try {
+        await fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+      } catch {
+        /* la confirmación visual no depende del backend */
+      }
       const done = $('[data-newsletter-done]');
       form.setAttribute('hidden', '');
       done?.removeAttribute('hidden');
     },
     { signal },
   );
+}
+
+/* ------------------------------------------------------------------
+   Accesibilidad: con reduced-motion, los clips no se reproducen solos
+------------------------------------------------------------------- */
+function initReducedMotionVideos() {
+  if (!reduced()) return;
+  $$<HTMLVideoElement>('video[autoplay]').forEach((v) => {
+    v.removeAttribute('autoplay');
+    v.pause();
+    v.setAttribute('controls', '');
+  });
 }
 
 /* ------------------------------------------------------------------
@@ -641,6 +722,7 @@ function initPage() {
   initCheckout(abort.signal);
   initReceiptUpload(abort.signal);
   initNewsletter(abort.signal);
+  initReducedMotionVideos();
   // Recalcular posiciones cuando las fuentes terminan de cargar
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
 }
