@@ -1,3 +1,4 @@
+import type { ResultSet } from '@libsql/client';
 import { db, cached } from './db';
 
 export type CampaignItem = {
@@ -19,16 +20,22 @@ export type Campaign = {
 /** Campañas publicadas (la más reciente primero), con sus piezas. */
 export async function getCampaigns(): Promise<Campaign[]> {
   return cached('campaigns', async () => {
-    const [campaigns, items] = await Promise.all([
-      db().execute(
-        'SELECT * FROM campaigns WHERE published = 1 ORDER BY position DESC, id DESC',
-      ),
-      db().execute(
-        `SELECT ci.* FROM campaign_items ci
-         JOIN campaigns c ON c.id = ci.campaign_id AND c.published = 1
-         ORDER BY ci.campaign_id, ci.position, ci.id`,
-      ),
-    ]);
+    let campaigns: ResultSet, items: ResultSet;
+    try {
+      [campaigns, items] = await Promise.all([
+        db().execute(
+          'SELECT * FROM campaigns WHERE published = 1 ORDER BY position DESC, id DESC',
+        ),
+        db().execute(
+          `SELECT ci.* FROM campaign_items ci
+           JOIN campaigns c ON c.id = ci.campaign_id AND c.published = 1
+           ORDER BY ci.campaign_id, ci.position, ci.id`,
+        ),
+      ]);
+    } catch {
+      // DB no disponible: el lookbook cae al editorial estático.
+      return [];
+    }
 
     const itemsBy = new Map<number, CampaignItem[]>();
     for (const r of items.rows) {

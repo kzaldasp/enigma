@@ -1,3 +1,4 @@
+import type { ResultSet } from '@libsql/client';
 import { db, cached } from './db';
 import type { Category } from './site';
 
@@ -31,13 +32,19 @@ function computeSoldOut(badge: string | null, sizes: ProductSize[]): boolean {
 /** Catálogo activo completo, en el orden definido en el admin. */
 export async function getProducts(): Promise<Product[]> {
   return cached('products', async () => {
-    const [products, images, sizes] = await Promise.all([
-      db().execute('SELECT * FROM products WHERE active = 1 ORDER BY sort_order, id'),
-      db().execute(
-        'SELECT product_id, url, type FROM product_images ORDER BY product_id, position',
-      ),
-      db().execute('SELECT product_id, size, stock FROM product_sizes ORDER BY product_id, position'),
-    ]);
+    let products: ResultSet, images: ResultSet, sizes: ResultSet;
+    try {
+      [products, images, sizes] = await Promise.all([
+        db().execute('SELECT * FROM products WHERE active = 1 ORDER BY sort_order, id'),
+        db().execute(
+          'SELECT product_id, url, type FROM product_images ORDER BY product_id, position',
+        ),
+        db().execute('SELECT product_id, size, stock FROM product_sizes ORDER BY product_id, position'),
+      ]);
+    } catch {
+      // DB no disponible: la landing sigue funcionando sin catálogo.
+      return [];
+    }
 
     const mediaBy = new Map<number, ProductMedia[]>();
     for (const r of images.rows) {
