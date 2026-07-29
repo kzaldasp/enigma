@@ -335,6 +335,20 @@ function initCatalog(signal: AbortSignal) {
 /* ------------------------------------------------------------------
    Producto: talle elegido → mensaje de WhatsApp precargado
 ------------------------------------------------------------------- */
+/** ViewContent: el visitante está viendo una ficha de producto. */
+function trackProductView() {
+  const box = $('[data-product]');
+  if (!box) return;
+  const slug = box.dataset.productSlug ?? '';
+  pixel('ViewContent', {
+    content_ids: [slug],
+    content_name: box.dataset.productTitle ?? '',
+    content_type: 'product',
+    value: Number(box.dataset.productPrice ?? 0),
+    currency: 'USD',
+  });
+}
+
 function initProduct(signal: AbortSignal) {
   const cta = $<HTMLAnchorElement>('a[data-wa-product]');
   if (!cta) return;
@@ -418,12 +432,21 @@ function initAddToCart(signal: AbortSignal) {
         return;
       }
       hint?.setAttribute('hidden', '');
+      const slug = box.dataset.productSlug ?? '';
+      const price = Number(box.dataset.productPrice ?? 0);
       addToCart({
-        slug: box.dataset.productSlug ?? '',
+        slug,
         title: box.dataset.productTitle ?? '',
-        price: Number(box.dataset.productPrice ?? 0),
+        price,
         size,
         image: box.dataset.productImage ?? '',
+      });
+      pixel('AddToCart', {
+        content_ids: [slug],
+        content_name: box.dataset.productTitle ?? '',
+        content_type: 'product',
+        value: price,
+        currency: 'USD',
       });
       done?.removeAttribute('hidden');
     },
@@ -501,6 +524,15 @@ function initCheckout(signal: AbortSignal) {
     window.location.replace('/carrito');
     return;
   }
+
+  // InitiateCheckout: llegó a la pantalla de datos con la bolsa cargada.
+  pixel('InitiateCheckout', {
+    content_ids: items.map((i) => i.slug),
+    content_type: 'product',
+    num_items: items.reduce((n, i) => n + i.qty, 0),
+    value: cartTotal(),
+    currency: 'USD',
+  });
 
   // Resumen
   const list = $('[data-checkout-items]');
@@ -652,6 +684,23 @@ function initReceiptUpload(signal: AbortSignal) {
         const res = await fetch('/api/comprobante', { method: 'POST', body: new FormData(form) });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? 'No pudimos subir el comprobante.');
+
+        // Purchase: el cliente ya transfirió y subió su comprobante. Es el
+        // punto más honesto medible desde el navegador — la validación final
+        // ocurre en el admin, sin el cliente presente. `once` evita duplicar
+        // el evento si vuelve a subir un comprobante del mismo pedido.
+        const cfg = $('[data-order]');
+        const code = cfg?.dataset.orderCode ?? '';
+        if (code && once(`enigma:purchase:${code}`)) {
+          pixel('Purchase', {
+            value: Number(cfg?.dataset.orderTotal ?? 0),
+            currency: 'USD',
+            content_ids: (cfg?.dataset.orderItems ?? '').split(',').filter(Boolean),
+            content_type: 'product',
+            order_id: code,
+          });
+        }
+
         window.location.reload();
       } catch (err) {
         if (errorEl) {
@@ -719,6 +768,33 @@ function initReducedMotionVideos() {
 ------------------------------------------------------------------- */
 const ATTR_KEY = 'enigma:attr';
 const SESSION_KEY = 'enigma:session';
+
+/* ------------------------------------------------------------------
+   Meta Pixel — eventos de conversión.
+   Solo actúa si PUBLIC_META_PIXEL_ID está configurado (entonces existe
+   window.fbq). Sin píxel, cada llamada es un no-op silencioso.
+------------------------------------------------------------------- */
+type Fbq = (cmd: string, event: string, params?: Record<string, unknown>) => void;
+
+function pixel(event: string, params?: Record<string, unknown>) {
+  try {
+    const fbq = (window as unknown as { fbq?: Fbq }).fbq;
+    if (typeof fbq === 'function') fbq('track', event, params);
+  } catch {
+    /* la medición nunca debe romper la tienda */
+  }
+}
+
+/** Evita mandar el mismo evento dos veces (recargas, doble clic). */
+function once(key: string): boolean {
+  try {
+    if (sessionStorage.getItem(key)) return false;
+    sessionStorage.setItem(key, '1');
+    return true;
+  } catch {
+    return true;
+  }
+}
 
 type Attr = { source: string; medium: string; campaign: string };
 
@@ -797,6 +873,7 @@ function initPage() {
   abort = new AbortController();
   captureAttribution();
   trackPageview();
+  trackProductView();
   initLenis();
   initHeader(abort.signal);
   initMenu(abort.signal);

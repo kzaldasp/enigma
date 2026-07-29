@@ -17,7 +17,10 @@ if (!order) {
 
 const [items, events] = await Promise.all([
   db().execute({
-    sql: 'SELECT * FROM order_items WHERE order_id = ?',
+    // El slug se usa como identificador del producto para el píxel/catálogo.
+    sql: `SELECT oi.*, p.slug FROM order_items oi
+          LEFT JOIN products p ON p.id = oi.product_id
+          WHERE oi.order_id = ?`,
     args: [Number(order.id)],
   }),
   db().execute({
@@ -188,7 +191,18 @@ const qrDataUrl = showBankAndUpload
               }
             </div>
 
-            <form id="receipt-form" class="mt-12" data-reveal>
+            <form
+              id="receipt-form"
+              class="mt-12"
+              data-reveal
+              data-order
+              data-order-code={String(order.code)}
+              data-order-total={Number(order.total)}
+              data-order-items={items.rows
+                .map((it) => (it.slug ? String(it.slug) : ''))
+                .filter(Boolean)
+                .join(',')}
+            >
               <input type="hidden" name="code" value={String(order.code)} />
               <h2 class="caps">SUBE TU COMPROBANTE</h2>
               <label for="receipt-file" class="caps mt-4 block text-stone">
