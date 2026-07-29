@@ -180,6 +180,22 @@ fbq('init','${metaPixel}');fbq('track','PageView');`}
     <slot name="head" />
   </head>
   <body class="bg-bone font-sans text-ink antialiased">
+    {
+      /* Respaldo del píxel para navegadores sin JavaScript (parte del
+         snippet oficial de Meta). Solo cuenta la vista de página. */
+      metaPixel && (
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style="display:none"
+            alt=""
+            src={`https://www.facebook.com/tr?id=${metaPixel}&ev=PageView&noscript=1`}
+          />
+        </noscript>
+      )
+    }
+
     <a href="#main" class="skip-link caps">Saltar al contenido</a>
     <Header theme={headerTheme} />
     <main id="main">
