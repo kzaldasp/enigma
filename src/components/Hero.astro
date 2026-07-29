@@ -9,10 +9,13 @@ const { seasonLine, heroImageUrl } = await getSiteContent();
 const hero = heroImageUrl ? null : campaignImage('hero');
 ---
 
+<!-- min-h con `min()`: el suelo de 34rem evita un hero achatado, pero nunca
+     supera la altura real de la pantalla — en un teléfono en paisaje (≈360px)
+     un mínimo fijo de 544px dejaba el botón «COMPRAR AHORA» fuera de vista. -->
 <section
   data-hero
   data-lines
-  class="parallax-frame relative flex h-svh min-h-[34rem] flex-col justify-end bg-ink text-bone"
+  class="parallax-frame relative flex h-svh min-h-[min(34rem,100svh)] flex-col justify-end bg-ink text-bone"
 >
   {
     hero ? (

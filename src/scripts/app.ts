@@ -476,23 +476,35 @@ function renderCartPage() {
 
   for (const item of items) {
     const row = document.createElement('div');
-    row.className = 'flex items-center gap-5 border-b border-line py-6';
+    // En una sola línea los cinco bloques (foto, datos, cantidad, importe,
+    // quitar) no caben en 320px y la página acaba con scroll horizontal. En
+    // móvil van en dos filas —foto a la izquierda ocupando ambas— y desde sm
+    // vuelven a una línea. El bloque cantidad+importe además puede envolver,
+    // así que ningún ancho intermedio lo rompe.
+    row.className =
+      'grid grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 border-b border-line py-6 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5';
     row.innerHTML = `
-      <a href="/producto/${item.slug}" class="block w-20 shrink-0">
+      <a href="/producto/${item.slug}" class="row-span-2 block sm:row-span-1">
         <img src="${cdnImage(item.image, 200)}" alt="" class="aspect-[3/4] w-full object-cover" />
       </a>
-      <div class="min-w-0 flex-1">
-        <a href="/producto/${item.slug}" class="caps u-link">${item.title}</a>
-        ${item.size ? `<p class="caps mt-1 text-stone">TALLE ${item.size}</p>` : ''}
-        <p class="caps mt-1 text-stone">${fmt(item.price)}</p>
+      <div class="flex min-w-0 items-start justify-between gap-2">
+        <!-- Todo el bloque de datos es el enlace: en móvil un título de una
+             línea daba un objetivo de 17px de alto, imposible de acertar. -->
+        <a href="/producto/${item.slug}" class="group block min-w-0">
+          <span class="caps u-link">${item.title}</span>
+          ${item.size ? `<p class="caps mt-1 text-stone">TALLE ${item.size}</p>` : ''}
+          <p class="caps mt-1 text-stone">${fmt(item.price)}</p>
+        </a>
+        <button type="button" data-remove class="caps -mt-3 -mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-stone hover:text-ink" aria-label="Quitar ${item.title}">✕</button>
       </div>
-      <div class="flex items-center gap-3">
-        <button type="button" data-qty-minus class="caps flex h-9 w-9 items-center justify-center border border-line hover:border-ink" aria-label="Restar uno">−</button>
-        <span class="caps w-5 text-center">${item.qty}</span>
-        <button type="button" data-qty-plus class="caps flex h-9 w-9 items-center justify-center border border-line hover:border-ink" aria-label="Sumar uno">+</button>
+      <div class="col-start-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 sm:col-start-3 sm:flex-nowrap sm:justify-end sm:gap-x-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-qty-minus class="caps flex h-11 w-9 items-center justify-center border border-line sm:w-11 hover:border-ink" aria-label="Restar uno">−</button>
+          <span class="caps w-6 text-center">${item.qty}</span>
+          <button type="button" data-qty-plus class="caps flex h-11 w-9 items-center justify-center border border-line sm:w-11 hover:border-ink" aria-label="Sumar uno">+</button>
+        </div>
+        <p class="caps text-right whitespace-nowrap">${fmt(item.price * item.qty)}</p>
       </div>
-      <p class="caps w-24 text-right">${fmt(item.price * item.qty)}</p>
-      <button type="button" data-remove class="caps text-stone hover:text-ink" aria-label="Quitar ${item.title}">✕</button>
     `;
     row.querySelector('[data-qty-minus]')?.addEventListener('click', () => {
       setQty(item.slug, item.size, item.qty - 1);

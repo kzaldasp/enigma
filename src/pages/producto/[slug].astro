@@ -69,9 +69,9 @@ const jsonLd = JSON.stringify([
   <article class="bg-bone pt-24 pb-section text-ink md:pt-32">
     <div class="wrap">
       <nav aria-label="Miga de pan" class="caps mb-10 flex gap-3 text-stone" data-reveal>
-        <a href="/catalogo" class="u-link">CATÁLOGO</a>
+        <a href="/catalogo" class="u-link tap">CATÁLOGO</a>
         <span aria-hidden="true">/</span>
-        <a href={`/catalogo?categoria=${category}`} class="u-link">{catLabel}</a>
+        <a href={`/catalogo?categoria=${category}`} class="u-link tap">{catLabel}</a>
       </nav>
 
       <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
@@ -213,11 +213,11 @@ const jsonLd = JSON.stringify([
 
     <!-- Relacionados -->
     <section class="wrap mt-[var(--spacing-section)]" aria-labelledby="related-title">
-      <div class="mb-12 flex items-end justify-between gap-6" data-reveal>
+      <div class="mb-12 flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-reveal>
         <h2 id="related-title" class="font-display text-product tracking-display">
           También te puede interesar
         </h2>
-        <a href="/catalogo" class="u-link caps shrink-0 pb-2">VER TODO →</a>
+        <a href="/catalogo" class="u-link caps tap pb-2">VER TODO →</a>
       </div>
       <div class="grid grid-cols-2 gap-x-6 gap-y-12 md:gap-x-10 lg:grid-cols-4 lg:gap-x-12" data-reveal-group>
         {related.map((p) => <ProductCard product={p} />)}

@@ -75,11 +75,15 @@ const alternate = media[1] ?? null;
       )
     }
   </div>
-  <div class="mt-4 flex items-baseline justify-between gap-4">
-    <h3 class="caps">
+  {/* En rejilla de dos columnas a 320px cada card mide ~128px: título y
+      precio no caben en la misma línea, así que envuelven en vez de desbordar. */}
+  <div class="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <h3 class="caps min-w-0">
       <span class="u-link">{title}</span>
     </h3>
-    <p class={`caps ${badge === 'AGOTADO' ? 'text-stone line-through' : 'text-stone'}`}>
+    <p
+      class={`caps whitespace-nowrap ${badge === 'AGOTADO' ? 'text-stone line-through' : 'text-stone'}`}
+    >
       {formatPrice(price)}
     </p>
   </div>

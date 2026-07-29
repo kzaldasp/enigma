@@ -34,7 +34,9 @@
   --text-editorial--line-height: 1.18;
   --text-manifesto: clamp(1.6rem, 3.4vw, 2.75rem);
   --text-manifesto--line-height: 1.45;
-  --text-menu: clamp(2.4rem, 10vw, 4.25rem); /* overlay móvil */
+  /* Overlay móvil: limitado también por la ALTURA del viewport, para que los
+     seis enlaces quepan en un teléfono en paisaje (svh ≈ 360px). */
+  --text-menu: clamp(1.6rem, min(10vw, 7.5svh), 4.25rem);
   --text-menu--line-height: 1.1;
   --text-wordmark: 21.5vw; /* firma gigante del footer */
   --text-wordmark--line-height: 0.8;
@@ -72,7 +74,12 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     min-height: 100svh;
+    /* Los datos editables del admin (correos, cuentas bancarias, números de
+       guía, slugs) traen "palabras" sin espacios que a 320px desbordan el
+       contenedor. Cortarlas solo cuando no caben nunca afecta al texto normal. */
+    overflow-wrap: break-word;
   }
+
 
   ::selection {
     background-color: var(--color-ink);
@@ -139,6 +146,17 @@
     padding-inline: var(--spacing-gutter);
   }
 
+  /* Enlaces que funcionan como control (nav, pie, filtros, wordmark): el dedo
+     necesita 44px de alto. Solo hasta 1024px para no alterar el ritmo
+     tipográfico del escritorio, donde se apunta con el ratón. */
+  @media (max-width: 1023px) {
+    .tap {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+    }
+  }
+
   /* Botón píldora — única curva permitida del sitio */
   .btn {
     display: inline-flex;
@@ -177,6 +195,27 @@
   .btn-ink:hover {
     background-color: transparent;
     color: var(--color-ink);
+  }
+
+  /* Campo de una línea (checkout, newsletter, seguimiento de pedido): solo
+     borde inferior. `min-height` garantiza los 44px de área táctil que la
+     combinación line-height + padding-bottom no alcanzaba (36px). */
+  .field-line {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    border-bottom: 1px solid var(--color-ink);
+    background-color: transparent;
+    padding-bottom: 0.75rem;
+  }
+  .field-line::placeholder {
+    color: var(--color-stone);
+  }
+  .field-line:focus {
+    outline: none;
+  }
+  .field-line:focus-visible {
+    border-bottom-width: 2px;
   }
 
   /* Subrayado que se dibuja de izquierda a derecha */
@@ -315,6 +354,22 @@
 }
 
 /* ----------------------------------------------------------------
+   Formularios en móvil — fuera de @layer a propósito: debe ganar a
+   cualquier utilidad de tamaño (text-body, text-sm…) aplicada al campo.
+
+   iOS Safari hace zoom al enfocar un control con letra < 16px y deja la
+   página desplazada y con scroll horizontal, sin forma de volver. Subir a
+   16px solo por debajo de 768px no cambia el diseño de forma perceptible.
+----------------------------------------------------------------- */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+
+/* ----------------------------------------------------------------
    Header — transparente arriba, fondo hueso al hacer scroll
 ----------------------------------------------------------------- */
 #site-header {
@@ -342,6 +397,19 @@ html[data-menu-open] #site-header {
 }
 html[data-menu-open] body {
   overflow: hidden;
+  /* Evita que el gesto "arrastre" la página de fondo en iOS/Android. */
+  overscroll-behavior: none;
+}
+
+/* Overlay del menú: la lista de enlaces se desplaza dentro de su propia
+   caja. Sin esto, un teléfono en paisaje (svh ≈ 360px) deja los últimos
+   enlaces y el pie fuera de la pantalla, sin forma de alcanzarlos. */
+#menu-overlay [data-menu-list] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Preloader oculto si la sesión ya lo vio (lo decide un script inline en <head>) */

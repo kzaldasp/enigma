@@ -20,7 +20,7 @@ const site = await getSiteContent();
               name="name"
               required
               autocomplete="name"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -32,7 +32,7 @@ const site = await getSiteContent();
               type="tel"
               autocomplete="tel"
               placeholder="0991234567"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -43,7 +43,7 @@ const site = await getSiteContent();
               type="email"
               required
               autocomplete="email"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -56,7 +56,7 @@ const site = await getSiteContent();
               pattern="[0-9]{10}"
               maxlength="10"
               autocomplete="off"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -65,7 +65,7 @@ const site = await getSiteContent();
               id="co-province"
               name="province"
               required
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             >
               <option value="" disabled selected>Selecciona tu provincia</option>
               {PROVINCES.map((p) => <option value={p}>{p}</option>)}
@@ -77,7 +77,7 @@ const site = await getSiteContent();
               id="co-city"
               name="city"
               required
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -87,7 +87,7 @@ const site = await getSiteContent();
               name="address"
               required
               autocomplete="street-address"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -97,7 +97,7 @@ const site = await getSiteContent();
               name="addressReference"
               required
               placeholder="Ej. casa azul frente al parque"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
           <div>
@@ -105,7 +105,7 @@ const site = await getSiteContent();
             <input
               id="co-notes"
               name="notes"
-              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+              class="field-line mt-3 text-body"
             />
           </div>
 
@@ -134,7 +134,7 @@ const site = await getSiteContent();
                 data-coupon-input
                 autocomplete="off"
                 placeholder="ENIGMA10"
-                class="mt-2 w-full border-b border-ink bg-transparent pb-2 text-body uppercase placeholder:text-stone focus:outline-none"
+                class="field-line mt-2 text-body uppercase"
               />
             </div>
             <button type="button" data-coupon-apply class="u-link caps min-h-11 shrink-0">

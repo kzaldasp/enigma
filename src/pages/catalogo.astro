@@ -29,7 +29,7 @@ const itemListLd = JSON.stringify({
   <script is:inline type="application/ld+json" set:html={itemListLd} slot="head" />
   <section class="bg-bone pt-36 pb-section text-ink md:pt-44" data-catalog>
     <div class="wrap">
-      <header class="flex flex-wrap items-end justify-between gap-6" data-reveal>
+      <header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-reveal>
         <h1 class="font-display text-section tracking-display">Catálogo</h1>
         <p class="caps pb-2 text-stone" data-count aria-live="polite">
           {total} PIEZAS
@@ -42,14 +42,14 @@ const itemListLd = JSON.stringify({
         aria-label="Filtrar por categoría"
         data-reveal
       >
-        <button type="button" class="u-link caps is-active min-h-11" data-filter="todo" aria-pressed="true">
+        <button type="button" class="u-link caps is-active min-h-11 text-left" data-filter="todo" aria-pressed="true">
           TODO
         </button>
         {
           categories.map((category) => (
             <button
               type="button"
-              class="u-link caps min-h-11"
+              class="u-link caps min-h-11 text-left"
               data-filter={category.slug}
               aria-pressed="false"
             >

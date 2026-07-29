@@ -19,15 +19,19 @@ const menuItems = [
 ];
 ---
 
+<!-- La navegación horizontal aparece en `lg`, no en `md`: a 768px los cuatro
+     enlaces + CONTACTO + wordmark + bolsa ocupan el 91% del ancho útil, así que
+     con la letra del navegador al 125% (accesibilidad) se desbordaba. Por
+     debajo de 1024px se usa el overlay, que no depende del ancho del texto. -->
 <header id="site-header" data-theme={theme} class="fixed inset-x-0 top-0 z-50">
-  <div class="wrap flex h-16 items-center justify-between md:h-20">
-    <!-- Izquierda: navegación desktop / botón menú móvil -->
-    <nav aria-label="Principal" class="hidden flex-1 items-center gap-7 md:flex">
+  <div class="wrap flex h-16 items-center justify-between lg:h-20">
+    <!-- Izquierda: navegación de escritorio / botón de menú -->
+    <nav aria-label="Principal" class="hidden flex-1 items-center gap-7 lg:flex">
       {
         NAV.map((item) => (
           <a
             href={item.href}
-            class="u-link caps"
+            class="u-link caps tap"
             aria-current={isCurrent(item.href) ? 'page' : undefined}
           >
             {item.label}
@@ -35,7 +39,7 @@ const menuItems = [
         ))
       }
     </nav>
-    <div class="flex flex-1 items-center md:hidden">
+    <div class="flex flex-1 items-center lg:hidden">
       <button
         id="menu-toggle"
         type="button"
@@ -50,7 +54,7 @@ const menuItems = [
     <!-- Centro: wordmark -->
     <a
       href="/"
-      class="font-display text-[1.35rem] tracking-display md:text-2xl"
+      class="tap font-display text-[1.35rem] tracking-display lg:text-2xl"
       aria-label="ENIGMA — inicio"
     >
       ENIGMA<sup class="text-[0.55em]">®</sup>
@@ -60,7 +64,7 @@ const menuItems = [
     <div class="flex flex-1 items-center justify-end gap-7">
       <a
         href="/marca"
-        class="u-link caps hidden md:inline-block"
+        class="u-link caps tap hidden lg:inline-flex"
         aria-current={isCurrent('/marca') ? 'page' : undefined}
       >
         CONTACTO
@@ -91,16 +95,22 @@ const menuItems = [
     </div>
   </div>
 
-  <!-- Overlay móvil: pantalla completa en negro, enlaces numerados -->
+  <!-- Overlay móvil: pantalla completa en negro, enlaces numerados.
+       La lista es la única zona desplazable (ver #menu-overlay [data-menu-list]
+       en global.css); el pie queda siempre visible, incluso en paisaje. -->
   <div
     id="menu-overlay"
     hidden
-    class="fixed inset-0 z-[-1] flex h-svh flex-col justify-between bg-ink pt-24 pb-10 text-bone md:hidden"
+    class="fixed inset-0 z-[-1] flex h-svh flex-col bg-ink pt-20 pb-6 text-bone sm:pt-24 sm:pb-10 lg:hidden"
     role="dialog"
     aria-modal="true"
     aria-label="Menú"
   >
-    <nav aria-label="Menú móvil" class="wrap">
+    <!-- `w-full` es imprescindible: `.wrap` lleva `margin-inline: auto`, y un
+         margen automático en el eje transversal desactiva el `stretch` del
+         flex item — sin él la lista quedaba estrecha y centrada, ignorando
+         los márgenes laterales del sitio. -->
+    <nav aria-label="Menú móvil" class="wrap w-full" data-menu-list>
       <ol class="flex flex-col gap-1">
         {
           menuItems.map((item, i) => (
@@ -108,7 +118,7 @@ const menuItems = [
               <a
                 href={item.href}
                 data-menu-item
-                class="flex items-baseline gap-5 py-3"
+                class="flex min-h-11 items-baseline gap-5 py-3"
                 aria-current={isCurrent(item.href) ? 'page' : undefined}
               >
                 <span class="caps text-stone">0{i + 1}</span>
@@ -119,12 +129,12 @@ const menuItems = [
         }
       </ol>
     </nav>
-    <div class="wrap flex items-center justify-between">
+    <div class="wrap mt-6 flex w-full shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2">
       <a
         href={contactInstagram}
         target="_blank"
         rel="noopener noreferrer"
-        class="u-link caps text-stone"
+        class="u-link caps tap text-stone"
       >
         INSTAGRAM
       </a>

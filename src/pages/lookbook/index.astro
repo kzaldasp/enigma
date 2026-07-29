@@ -112,11 +112,14 @@ const description = current?.description
                         />
                       )}
                     </div>
-                    <div class="mt-4 flex items-baseline justify-between gap-4">
+                    {/* Sin `shrink-0`: una línea de temporada larga en una
+                        columna de 124px (dos columnas a 320px) desbordaba la
+                        página. Ahora envuelve bajo el título. */}
+                    <div class="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <h3 class="caps">
                         <span class="u-link">{c.title}</span>
                       </h3>
-                      {c.seasonLine && <span class="caps shrink-0 text-stone">{c.seasonLine}</span>}
+                      {c.seasonLine && <span class="caps min-w-0 text-stone">{c.seasonLine}</span>}
                     </div>
                   </a>
                 );

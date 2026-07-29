@@ -8,6 +8,9 @@ node_modules/
 # env
 .env
 .env.production
+# Vite/Astro cargan .env.local con prioridad sobre .env: es donde acaban los
+# valores de una máquina concreta y no debe subirse.
+.env*.local
 
 # vercel
 .vercel/
