@@ -20,6 +20,9 @@ import {
 
 const site = await getSiteContent();
 
+// Analítica (opcional): sin el token no se inyecta nada.
+const cfToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN ?? process.env.PUBLIC_CF_ANALYTICS_TOKEN;
+
 // Tipografías configurables: se sobreescriben los tokens --font-* del @theme
 // con un style inline en <html> (gana a la hoja de estilos por especificidad).
 const fontsHref = googleFontsHref([site.fontDisplay, site.fontBody, site.fontHero]);
@@ -144,6 +147,19 @@ const identityLd = JSON.stringify([
     </script>
 
     <ClientRouter />
+
+    {
+      /* Cloudflare Web Analytics: sin cookies, no necesita aviso de consentimiento.
+         Se activa poniendo PUBLIC_CF_ANALYTICS_TOKEN en el entorno. */
+      cfToken && (
+        <script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={`{"token": "${cfToken}"}`}
+        />
+      )
+    }
+
     <slot name="head" />
   </head>
   <body class="bg-bone font-sans text-ink antialiased">
