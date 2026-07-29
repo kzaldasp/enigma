@@ -208,10 +208,12 @@ export const POST: APIRoute = async ({ request }) => {
     to: email,
     name,
     code,
-    items: validated.map(
-      (it) =>
-        `${it.product_name}${it.size ? ` (${it.size})` : ''} ×${it.quantity} — $${(it.unit_price * it.quantity).toFixed(2)}`,
-    ),
+    items: validated.map((it) => ({
+      name: `${it.product_name}${it.size ? ` (${it.size})` : ''}`,
+      qty: it.quantity,
+      amount: it.unit_price * it.quantity,
+    })),
+    subtotal: totals.subtotal,
     total: totals.total,
     shipping: totals.shipping,
     discount: totals.discount,
