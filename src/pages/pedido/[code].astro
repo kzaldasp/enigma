@@ -1,4 +1,5 @@
 ---
+import QRCode from 'qrcode';
 import Base from '../../layouts/Base.astro';
 import { db } from '../../lib/db';
 import { getSiteContent } from '../../lib/content';
@@ -41,10 +42,12 @@ const STEP_EVENTS = ['creado', 'comprobante_subido', 'validado', 'preparando', '
 const site = await getSiteContent();
 const status = String(order.status);
 const fulfillment = order.fulfillment ? String(order.fulfillment) : null;
-const trackingNote = order.tracking_note ? String(order.tracking_note) : null;
+const carrierText = [order.carrier, order.tracking_note].filter(Boolean).join(' — guía ');
 const fmt = (n: number) => `$${n.toFixed(2)} USD`;
 
 const rejected = status === 'rechazado';
+const canceled = status === 'cancelado';
+const stopped = rejected || canceled;
 
 /**
  * Trazabilidad: 6 pasos. El índice del paso actual se deriva del estado
@@ -63,21 +66,31 @@ const STEPS = [
   { title: 'COMPROBANTE EN REVISIÓN', text: 'Validamos tu transferencia en horas laborables.' },
   { title: 'PAGO CONFIRMADO', text: 'Tu pago fue validado.' },
   { title: 'PREPARANDO TU PEDIDO', text: 'Estamos empacando tus piezas.' },
-  { title: 'ENVIADO', text: trackingNote ?? 'Tu pedido va en camino.' },
+  { title: 'ENVIADO', text: carrierText || 'Tu pedido va en camino.' },
   { title: 'ENTREGADO', text: 'Gracias por llevar ENIGMA.' },
 ];
 
 const headline = rejected
   ? 'PEDIDO RECHAZADO'
-  : STEPS[currentStep].title;
+  : canceled
+    ? 'PEDIDO CANCELADO'
+    : STEPS[currentStep].title;
 const headText = rejected
   ? 'No pudimos validar el pago. Escríbenos por WhatsApp para resolverlo.'
-  : currentStep === 0
-    ? 'Haz la transferencia con los datos de abajo y sube el comprobante para confirmar tu compra.'
-    : STEPS[currentStep].text;
+  : canceled
+    ? 'Este pedido fue cancelado. Escríbenos por WhatsApp si quieres volver a comprar.'
+    : currentStep === 0
+      ? 'Haz la transferencia con los datos de abajo y sube el comprobante para confirmar tu compra.'
+      : STEPS[currentStep].text;
 
 // El formulario de subida SOLO aparece antes de subir el primer comprobante.
 const showBankAndUpload = status === 'pendiente';
+
+// QR con los datos de cuenta para no tener que copiarlos a mano.
+const qrText = `${site.bankDetails}\nMonto: ${fmt(Number(order.total))}\nReferencia: ${order.code}`;
+const qrDataUrl = showBankAndUpload
+  ? await QRCode.toDataURL(qrText, { margin: 1, width: 220 })
+  : null;
 ---
 
 <Base title={`Pedido ${order.code} — ENIGMA®`} description="Estado de tu pedido." noindex>
@@ -89,7 +102,7 @@ const showBankAndUpload = status === 'pendiente';
 
       {
         /* Trazabilidad: línea de tiempo tipo hairline */
-        !rejected && (
+        !stopped && (
           <ol class="mt-14 border-l border-line" data-reveal aria-label="Estado del pedido">
             {STEPS.map((step, i) => {
               const done = i < currentStep;
@@ -109,7 +122,7 @@ const showBankAndUpload = status === 'pendiente';
                       <span class="text-stone"> · {stepDate(STEP_EVENTS[i])}</span>
                     )}
                   </p>
-                  {(current || (i === 4 && trackingNote && done)) && (
+                  {(current || (i === 4 && carrierText && done)) && (
                     <p class="mt-1 max-w-md text-sm text-stone">{step.text}</p>
                   )}
                 </li>
@@ -157,12 +170,22 @@ const showBankAndUpload = status === 'pendiente';
       {
         showBankAndUpload && (
           <>
-            <div class="mt-12 bg-ink p-8 text-bone" data-reveal>
-              <h2 class="caps">DATOS PARA LA TRANSFERENCIA</h2>
-              <p class="mt-4 text-lg leading-relaxed whitespace-pre-line">{site.bankDetails}</p>
-              <p class="caps mt-6 text-stone">
-                MONTO EXACTO: {fmt(Number(order.total))} · REFERENCIA: {order.code}
-              </p>
+            <div class="mt-12 flex flex-col gap-6 bg-ink p-8 text-bone sm:flex-row sm:items-center" data-reveal>
+              <div class="flex-1">
+                <h2 class="caps">DATOS PARA LA TRANSFERENCIA</h2>
+                <p class="mt-4 text-lg leading-relaxed whitespace-pre-line">{site.bankDetails}</p>
+                <p class="caps mt-6 text-stone">
+                  MONTO EXACTO: {fmt(Number(order.total))} · REFERENCIA: {order.code}
+                </p>
+              </div>
+              {
+                qrDataUrl && (
+                  <div class="flex shrink-0 flex-col items-center gap-2">
+                    <img src={qrDataUrl} alt="QR con los datos de la cuenta" width="160" height="160" class="bg-bone p-2" />
+                    <p class="caps text-center text-xs text-stone">ESCANEA PARA VER LOS DATOS</p>
+                  </div>
+                )
+              }
             </div>
 
             <form id="receipt-form" class="mt-12" data-reveal>

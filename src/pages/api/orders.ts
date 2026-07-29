@@ -1,24 +1,20 @@
 import type { APIRoute } from 'astro';
-import { randomBytes } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { db, invalidateCache } from '../../lib/db';
 import { getSiteContent } from '../../lib/content';
 import { computeTotals } from '../../lib/totals';
 import { findCoupon } from '../../lib/coupons';
-import { notifyOwner } from '../../lib/notify';
-import { sendWhatsApp } from '../../lib/whatsapp';
+import { notifyOwner, sendOrderEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
+import { PROVINCES } from '../../lib/site';
 
 export const prerender = false;
 
 type IncomingItem = { slug: string; size: string | null; qty: number };
 
-function orderCode(): string {
-  // Sin caracteres ambiguos (0/O, 1/I) para dictarlo por teléfono.
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const bytes = randomBytes(5);
-  let code = '';
-  for (const b of bytes) code += alphabet[b % alphabet.length];
-  return `ENG-${code}`;
+/** Código público secuencial a partir del id autoincremental: EN-000001. */
+function orderCode(id: number): string {
+  return `EN-${String(id).padStart(6, '0')}`;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -46,9 +42,25 @@ export const POST: APIRoute = async ({ request }) => {
   const customer = body.customer ?? {};
   const name = String(customer.name ?? '').trim();
   const phone = String(customer.phone ?? '').trim();
+  const email = String(customer.email ?? '').trim();
+  const cedula = String(customer.cedula ?? '').trim();
+  const province = String(customer.province ?? '').trim();
+  const address = String(customer.address ?? '').trim();
+  const city = String(customer.city ?? '').trim();
+  const addressReference = String(customer.addressReference ?? '').trim();
   const items = Array.isArray(body.items) ? body.items : [];
 
   if (!name || !phone) return json({ error: 'Nombre y teléfono son obligatorios' }, 400);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json({ error: 'Ingresa un correo válido' }, 400);
+  }
+  if (!/^\d{10}$/.test(cedula)) return json({ error: 'La cédula debe tener 10 dígitos' }, 400);
+  if (!PROVINCES.includes(province as (typeof PROVINCES)[number])) {
+    return json({ error: 'Selecciona una provincia válida' }, 400);
+  }
+  if (!address) return json({ error: 'La dirección exacta es obligatoria' }, 400);
+  if (!city) return json({ error: 'La ciudad es obligatoria' }, 400);
+  if (!addressReference) return json({ error: 'La referencia de ubicación es obligatoria' }, 400);
   if (items.length === 0) return json({ error: 'La bolsa está vacía' }, 400);
   if (items.length > 30) return json({ error: 'Demasiados items' }, 400);
 
@@ -129,33 +141,41 @@ export const POST: APIRoute = async ({ request }) => {
     freeShippingFrom: site.shippingFreeFrom,
     coupon,
   });
-  const code = orderCode();
+  // Código definitivo (EN-000001) se arma después del insert, a partir del id.
+  // Se usa un placeholder único mientras tanto para no chocar con el UNIQUE NOT NULL.
+  const tempCode = `TMP-${randomUUID()}`;
 
-  // Pedido + items + evento en una sola transacción.
-  const statements = [
-    {
-      sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, address, city, notes, total, shipping, coupon_code, discount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        code,
-        name,
-        phone,
-        String(customer.email ?? '').trim() || null,
-        String(customer.address ?? '').trim() || null,
-        String(customer.city ?? '').trim() || null,
-        String(customer.notes ?? '').trim() || null,
-        totals.total,
-        totals.shipping,
-        coupon && totals.discount > 0 ? coupon.code : null,
-        totals.discount,
-      ],
-    },
-  ];
-  const orderRes = await db().batch(statements, 'write');
+  const orderRes = await db().batch(
+    [
+      {
+        sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, cedula, province, address, city, address_reference, notes, total, shipping, coupon_code, discount)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          tempCode,
+          name,
+          phone,
+          email,
+          cedula,
+          province,
+          address,
+          city,
+          addressReference,
+          String(customer.notes ?? '').trim() || null,
+          totals.total,
+          totals.shipping,
+          coupon && totals.discount > 0 ? coupon.code : null,
+          totals.discount,
+        ],
+      },
+    ],
+    'write',
+  );
   const orderId = Number(orderRes[0].lastInsertRowid);
+  const code = orderCode(orderId);
 
   await db().batch(
     [
+      { sql: `UPDATE orders SET code = ? WHERE id = ?`, args: [code, orderId] },
       ...validated.map((it) => ({
         sql: `INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price)
               VALUES (?, ?, ?, ?, ?, ?)`,
@@ -173,7 +193,8 @@ export const POST: APIRoute = async ({ request }) => {
 
   await notifyOwner(`Nuevo pedido ${code} — $${totals.total.toFixed(2)}`, [
     `Pedido: ${code}`,
-    `Cliente: ${name} · ${phone}`,
+    `Cliente: ${name} · ${phone} · CI ${cedula}`,
+    `Entrega: ${address}, ${city}, ${province}`,
     `Total: $${totals.total.toFixed(2)} (envío $${totals.shipping.toFixed(2)}${totals.discount ? `, descuento -$${totals.discount.toFixed(2)}` : ''})`,
     '',
     ...validated.map((it) => `· ${it.product_name}${it.size ? ` (${it.size})` : ''} ×${it.quantity}`),
@@ -181,12 +202,23 @@ export const POST: APIRoute = async ({ request }) => {
     `Revísalo en el admin → Pedidos web`,
   ]);
 
-  const trackUrl = new URL(`/pedido/${code}`, request.url).toString();
-  await sendWhatsApp(
-    phone,
-    `ENIGMA — Hola ${name}, recibimos tu pedido ${code} por $${totals.total.toFixed(2)}. ` +
-      `Realiza la transferencia y sube tu comprobante aquí: ${trackUrl}`,
-  );
+  // Respaldo escrito con datos bancarios y enlace, por si cierra la página.
+  // El único WhatsApp automático del flujo sale al subir el comprobante (ver comprobante.ts).
+  await sendOrderEmail({
+    to: email,
+    name,
+    code,
+    items: validated.map(
+      (it) =>
+        `${it.product_name}${it.size ? ` (${it.size})` : ''} ×${it.quantity} — $${(it.unit_price * it.quantity).toFixed(2)}`,
+    ),
+    total: totals.total,
+    shipping: totals.shipping,
+    discount: totals.discount,
+    address: `${address}, ${city}, ${province} (${addressReference})`,
+    bankDetails: site.bankDetails,
+    trackUrl: new URL(`/pedido/${code}`, request.url).toString(),
+  });
 
   return json({ code });
 };

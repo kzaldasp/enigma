@@ -42,7 +42,7 @@ const DEFAULTS: Record<string, string> = {
   newsletter_title: 'No todos pueden tener piezas limitadas.',
   newsletter_text:
     'Acceso anticipado a cada serie, antes de que se agote. Nada más: sin promociones, sin ruido.',
-  contact_email: 'hola@enigma.example',
+  contact_email: 'contacto@enigma593.com',
   contact_instagram: 'https://instagram.com/enigma',
   contact_city: 'QUITO — ECUADOR',
   whatsapp_number: '',

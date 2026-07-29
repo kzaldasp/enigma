@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getSiteContent } from '../lib/content';
+import { PROVINCES } from '../lib/site';
 
 const site = await getSiteContent();
 ---
@@ -35,17 +36,52 @@ const site = await getSiteContent();
             />
           </div>
           <div>
-            <label for="co-email" class="caps text-stone">Correo (opcional)</label>
+            <label for="co-email" class="caps text-stone">Correo *</label>
             <input
               id="co-email"
               name="email"
               type="email"
+              required
               autocomplete="email"
               class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
             />
           </div>
           <div>
-            <label for="co-address" class="caps text-stone">Dirección de entrega *</label>
+            <label for="co-cedula" class="caps text-stone">Cédula *</label>
+            <input
+              id="co-cedula"
+              name="cedula"
+              required
+              inputmode="numeric"
+              pattern="[0-9]{10}"
+              maxlength="10"
+              autocomplete="off"
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-province" class="caps text-stone">Provincia *</label>
+            <select
+              id="co-province"
+              name="province"
+              required
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body focus:outline-none focus-visible:border-b-2"
+            >
+              <option value="" disabled selected>Selecciona tu provincia</option>
+              {PROVINCES.map((p) => <option value={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <label for="co-city" class="caps text-stone">Ciudad *</label>
+            <input
+              id="co-city"
+              name="city"
+              required
+              class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
+            />
+          </div>
+          <div>
+            <label for="co-address" class="caps text-stone">Dirección exacta *</label>
             <input
               id="co-address"
               name="address"
@@ -55,11 +91,12 @@ const site = await getSiteContent();
             />
           </div>
           <div>
-            <label for="co-city" class="caps text-stone">Ciudad *</label>
+            <label for="co-reference" class="caps text-stone">Referencia de ubicación *</label>
             <input
-              id="co-city"
-              name="city"
+              id="co-reference"
+              name="addressReference"
               required
+              placeholder="Ej. casa azul frente al parque"
               class="mt-3 w-full border-b border-ink bg-transparent pb-3 text-body placeholder:text-stone focus:outline-none focus-visible:border-b-2"
             />
           </div>
@@ -75,7 +112,7 @@ const site = await getSiteContent();
           <p data-checkout-error hidden class="caps text-stone" role="alert"></p>
           <button type="submit" class="btn btn-ink mt-2">CONFIRMAR PEDIDO</button>
           <p class="caps text-stone">
-            AL CONFIRMAR RECIBES LOS DATOS BANCARIOS PARA LA TRANSFERENCIA.
+            AL CONFIRMAR RECIBES LOS DATOS BANCARIOS EN PANTALLA Y UNA COPIA EN TU CORREO.
           </p>
         </form>
 
