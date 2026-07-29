@@ -16,6 +16,26 @@ export function waLink(number: string, message: string): string {
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }
 
+/**
+ * URL pública absoluta. No se puede derivar de `request.url`: dentro de una
+ * función serverless de Vercel el host es `localhost`, y ese link acabaría
+ * en los correos y WhatsApp del cliente. Orden de preferencia:
+ *   PUBLIC_SITE_URL → SITE (astro.config) → dominio de producción de Vercel.
+ */
+export function siteUrl(path: string): string {
+  const env = (k: string): string | undefined =>
+    (import.meta.env?.[k] as string | undefined) ?? process.env[k];
+
+  const vercel = env('VERCEL_PROJECT_PRODUCTION_URL');
+  const base =
+    env('PUBLIC_SITE_URL') ??
+    env('SITE') ??
+    (vercel ? `https://${vercel}` : undefined) ??
+    'https://enigma593.com';
+
+  return new URL(path, base.startsWith('http') ? base : `https://${base}`).toString();
+}
+
 export const NAV = [
   { label: 'INICIO', href: '/' },
   { label: 'CATÁLOGO', href: '/catalogo' },

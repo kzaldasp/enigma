@@ -6,7 +6,7 @@ import { computeTotals } from '../../lib/totals';
 import { findCoupon } from '../../lib/coupons';
 import { notifyOwner, sendOrderEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
-import { PROVINCES } from '../../lib/site';
+import { PROVINCES, siteUrl } from '../../lib/site';
 
 export const prerender = false;
 
@@ -219,7 +219,7 @@ export const POST: APIRoute = async ({ request }) => {
     discount: totals.discount,
     address: `${address}, ${city}, ${province} (${addressReference})`,
     bankDetails: site.bankDetails,
-    trackUrl: new URL(`/pedido/${code}`, request.url).toString(),
+    trackUrl: siteUrl(`/pedido/${code}`),
   });
 
   return json({ code });

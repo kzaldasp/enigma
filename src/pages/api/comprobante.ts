@@ -4,6 +4,7 @@ import { uploadReceipt } from '../../lib/upload';
 import { notifyOwner } from '../../lib/notify';
 import { sendWhatsApp } from '../../lib/whatsapp';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
+import { siteUrl } from '../../lib/site';
 
 export const prerender = false;
 
@@ -91,7 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
         `Total: $${Number(order.total).toFixed(2)}\n` +
         (address ? `Entrega: ${address}\n` : '') +
         `\nTu comprobante está en proceso de confirmación de pago. Te avisaremos apenas se valide. ` +
-        `Sigue tu pedido aquí: ${new URL(`/pedido/${code}`, request.url).toString()}`,
+        `Sigue tu pedido aquí: ${siteUrl(`/pedido/${code}`)}`,
     );
 
     return json({ ok: true });
