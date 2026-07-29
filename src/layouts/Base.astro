@@ -22,6 +22,7 @@ const site = await getSiteContent();
 
 // Analítica (opcional): sin el token no se inyecta nada.
 const cfToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN ?? process.env.PUBLIC_CF_ANALYTICS_TOKEN;
+const metaPixel = import.meta.env.PUBLIC_META_PIXEL_ID ?? process.env.PUBLIC_META_PIXEL_ID;
 
 // Tipografías configurables: se sobreescriben los tokens --font-* del @theme
 // con un style inline en <html> (gana a la hoja de estilos por especificidad).
@@ -156,6 +157,22 @@ const identityLd = JSON.stringify([
           defer
           src="https://static.cloudflareinsights.com/beacon.min.js"
           data-cf-beacon={`{"token": "${cfToken}"}`}
+        />
+      )
+    }
+
+    {
+      /* Meta Pixel — solo si se configura PUBLIC_META_PIXEL_ID.
+         Necesario para medir conversiones de anuncios de Instagram/Facebook. */
+      metaPixel && (
+        <script
+          is:inline
+          set:html={`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','${metaPixel}');fbq('track','PageView');`}
         />
       )
     }

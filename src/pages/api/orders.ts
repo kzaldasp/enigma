@@ -7,6 +7,7 @@ import { findCoupon } from '../../lib/coupons';
 import { notifyOwner, sendOrderEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
 import { PROVINCES, siteUrl } from '../../lib/site';
+import { readGeo } from '../../lib/geo';
 
 export const prerender = false;
 
@@ -32,6 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
     customer?: Record<string, unknown>;
     items?: IncomingItem[];
     coupon?: string;
+    attribution?: { source?: string; medium?: string; campaign?: string } | null;
   };
   try {
     body = await request.json();
@@ -145,11 +147,16 @@ export const POST: APIRoute = async ({ request }) => {
   // Se usa un placeholder único mientras tanto para no chocar con el UNIQUE NOT NULL.
   const tempCode = `TMP-${randomUUID()}`;
 
+  // Atribución de marketing: de dónde venía el cliente la primera vez.
+  const attr = body.attribution ?? null;
+  const clean = (v: unknown, max = 60) => String(v ?? '').trim().toLowerCase().slice(0, max) || null;
+  const geo = readGeo(request);
+
   const orderRes = await db().batch(
     [
       {
-        sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, cedula, province, address, city, address_reference, notes, total, shipping, coupon_code, discount)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, cedula, province, address, city, address_reference, notes, total, shipping, coupon_code, discount, source, medium, campaign, province_geo)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           tempCode,
           name,
@@ -165,6 +172,10 @@ export const POST: APIRoute = async ({ request }) => {
           totals.shipping,
           coupon && totals.discount > 0 ? coupon.code : null,
           totals.discount,
+          clean(attr?.source, 40),
+          clean(attr?.medium, 40),
+          clean(attr?.campaign),
+          geo.province || null,
         ],
       },
     ],

@@ -605,6 +605,8 @@ function initCheckout(signal: AbortSignal) {
             },
             items: getCart().map((i) => ({ slug: i.slug, size: i.size, qty: i.qty })),
             coupon: coupon?.code ?? '',
+            // De dónde vino el cliente la primera vez (para atribuir la venta).
+            attribution: storedAttribution(),
           }),
         });
         const json = await res.json();
@@ -710,8 +712,91 @@ function initReducedMotionVideos() {
 /* ------------------------------------------------------------------
    Ciclo de vida
 ------------------------------------------------------------------- */
+/* ------------------------------------------------------------------
+   Analítica propia — sin cookies, solo agregados en el servidor.
+   Además guarda el origen de la PRIMERA visita (first-touch) para poder
+   atribuir después el pedido a la campaña que realmente lo trajo.
+------------------------------------------------------------------- */
+const ATTR_KEY = 'enigma:attr';
+const SESSION_KEY = 'enigma:session';
+
+type Attr = { source: string; medium: string; campaign: string };
+
+/** Origen guardado de la primera visita, si lo hay. */
+export function storedAttribution(): Attr | null {
+  try {
+    const raw = localStorage.getItem(ATTR_KEY);
+    return raw ? (JSON.parse(raw) as Attr) : null;
+  } catch {
+    return null;
+  }
+}
+
+function captureAttribution() {
+  try {
+    // No se pisa: el primer origen es el que trajo al cliente.
+    if (localStorage.getItem(ATTR_KEY)) return;
+
+    const p = new URLSearchParams(location.search);
+    const utm = p.get('utm_source');
+    let attr: Attr;
+
+    if (utm) {
+      attr = {
+        source: utm.toLowerCase(),
+        medium: (p.get('utm_medium') ?? 'cpc').toLowerCase(),
+        campaign: (p.get('utm_campaign') ?? '').toLowerCase(),
+      };
+    } else if (document.referrer && !document.referrer.includes(location.hostname)) {
+      const host = new URL(document.referrer).hostname.replace(/^www\./, '');
+      attr = { source: host.toLowerCase(), medium: 'referido', campaign: '' };
+    } else {
+      attr = { source: 'directo', medium: 'directo', campaign: '' };
+    }
+
+    localStorage.setItem(ATTR_KEY, JSON.stringify(attr));
+  } catch {
+    /* sin localStorage: se pierde la atribución, nada más */
+  }
+}
+
+function trackPageview() {
+  let isSession = false;
+  try {
+    isSession = !sessionStorage.getItem(SESSION_KEY);
+    if (isSession) sessionStorage.setItem(SESSION_KEY, '1');
+  } catch {
+    /* sessionStorage no disponible */
+  }
+
+  const payload = JSON.stringify({
+    path: location.pathname,
+    q: location.search.replace(/^\?/, ''),
+    ref: document.referrer || '',
+    s: isSession,
+  });
+
+  try {
+    // sendBeacon no bloquea la navegación ni retrasa el render.
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/hit', new Blob([payload], { type: 'application/json' }));
+    } else {
+      void fetch('/api/hit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      });
+    }
+  } catch {
+    /* la analítica jamás debe romper la página */
+  }
+}
+
 function initPage() {
   abort = new AbortController();
+  captureAttribution();
+  trackPageview();
   initLenis();
   initHeader(abort.signal);
   initMenu(abort.signal);
