@@ -264,3 +264,118 @@ export async function sendOrderEmail(params: {
 
   await sendEmail(to, `ENIGMA — Tu pedido ${code}`, text, html);
 }
+
+/**
+ * Acuse inmediato al subir el comprobante. La página ya se lo confirma en
+ * pantalla, pero esto es lo que le queda si cierra la pestaña: constancia
+ * escrita de que su transferencia entró y de por cuánto.
+ */
+export async function sendReceiptEmail(params: {
+  to: string;
+  name: string;
+  code: string;
+  total: number;
+  trackUrl: string;
+}): Promise<void> {
+  const { to, name, code, total, trackUrl } = params;
+
+  const text = [
+    `Hola ${name},`,
+    '',
+    `Recibimos tu comprobante del pedido ${code}.`,
+    '',
+    `Monto del pedido: ${money(total)}`,
+    '',
+    'Lo estamos verificando y te confirmamos por WhatsApp apenas quede validado.',
+    '',
+    'Sigue el estado de tu pedido aquí:',
+    trackUrl,
+    '',
+    'ENIGMA®',
+  ].join('\n');
+
+  const html = `<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprobante recibido ${esc(code)}</title></head>
+<body style="margin:0;padding:0;background:${BONE};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    Recibimos tu comprobante del pedido ${esc(code)} — lo estamos verificando.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BONE};">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+        <tr>
+          <td style="background:${INK};padding:28px 32px;text-align:center;">
+            <p style="margin:0;font-family:${SANS};font-size:15px;letter-spacing:.42em;text-transform:uppercase;color:${BONE};">ENIGMA</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:36px 32px 0;">
+            ${label(`Pedido ${code}`)}
+            <h1 style="margin:12px 0 0;font-family:${SERIF};font-size:32px;line-height:1.15;font-weight:400;color:${INK};">
+              Comprobante recibido.
+            </h1>
+            <p style="margin:14px 0 0;font-family:${SANS};font-size:14px;line-height:1.7;color:${STONE};">
+              Gracias, ${esc(name.split(' ')[0])}. Ya tenemos tu comprobante y lo estamos
+              verificando. Te confirmamos por WhatsApp apenas quede validado.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:28px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${LINE};">
+              <tr><td style="padding:20px 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="font-family:${SANS};font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${STONE};">Pedido</td>
+                    <td align="right" style="font-family:${SANS};font-size:14px;color:${INK};">${esc(code)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top:10px;font-family:${SANS};font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${STONE};">Monto</td>
+                    <td align="right" style="padding-top:10px;font-family:${SANS};font-size:15px;color:${INK};">${money(total)}</td>
+                  </tr>
+                </table>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 32px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr><td align="center" style="border:1px solid ${INK};">
+                <a href="${esc(trackUrl)}" style="display:block;padding:16px 24px;font-family:${SANS};font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:${INK};text-decoration:none;">
+                  Seguir mi pedido
+                </a>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:36px 32px 40px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${LINE};">
+              <tr><td style="padding-top:24px;text-align:center;">
+                <p style="margin:0;font-family:${SERIF};font-size:18px;letter-spacing:.28em;text-transform:uppercase;color:${INK};">ENIGMA</p>
+                <p style="margin:10px 0 0;font-family:${SANS};font-size:11px;line-height:1.8;letter-spacing:.06em;color:${STONE};">
+                  Piezas limitadas · Ecuador<br>
+                  ¿Dudas? Responde a este correo.
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await sendEmail(to, `ENIGMA — Recibimos tu comprobante · ${code}`, text, html);
+}

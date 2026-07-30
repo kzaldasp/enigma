@@ -1,8 +1,7 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/db';
 import { uploadReceipt } from '../../lib/upload';
-import { notifyOwner } from '../../lib/notify';
-import { sendWhatsApp } from '../../lib/whatsapp';
+import { notifyOwner, sendReceiptEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
 import { siteUrl } from '../../lib/site';
 
@@ -39,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!file.type.startsWith('image/')) return json({ error: 'Solo se permiten imágenes' }, 400);
 
   const res = await db().execute({
-    sql: `SELECT id, status, customer_name, customer_phone, address, city, total
+    sql: `SELECT id, status, customer_name, customer_phone, customer_email, address, city, total
           FROM orders WHERE code = ?`,
     args: [code],
   });
@@ -73,27 +72,17 @@ export const POST: APIRoute = async ({ request }) => {
       `Revísalo y valida el pago en el admin → Pedidos web`,
     ]);
 
-    // Único mensaje automático de todo el flujo: confirma el pedido y que el
-    // comprobante ya está en revisión. El resto (aprobado, envío, etc.) son
-    // botones manuales de WhatsApp Web en el panel admin.
-    const items = await db().execute({
-      sql: 'SELECT product_name, size, quantity FROM order_items WHERE order_id = ?',
-      args: [Number(order.id)],
-    });
-    const itemsText = items.rows
-      .map((it) => `• ${String(it.product_name)}${it.size ? ` (${String(it.size)})` : ''} ×${Number(it.quantity)}`)
-      .join('\n');
-    const address = [order.address, order.city].filter(Boolean).join(', ');
-
-    await sendWhatsApp(
-      String(order.customer_phone),
-      `ENIGMA — Hola ${String(order.customer_name)}, hemos recibido tu pedido ${code}:\n` +
-        `${itemsText}\n` +
-        `Total: $${Number(order.total).toFixed(2)}\n` +
-        (address ? `Entrega: ${address}\n` : '') +
-        `\nTu comprobante está en proceso de confirmación de pago. Te avisaremos apenas se valide. ` +
-        `Sigue tu pedido aquí: ${siteUrl(`/pedido/${code}`)}`,
-    );
+    // Acuse escrito al cliente: la página ya se lo confirma en pantalla, pero
+    // esto es lo que le queda si cierra la pestaña.
+    if (order.customer_email) {
+      await sendReceiptEmail({
+        to: String(order.customer_email),
+        name: String(order.customer_name),
+        code,
+        total: Number(order.total),
+        trackUrl: siteUrl(`/pedido/${code}`),
+      });
+    }
 
     return json({ ok: true });
   } catch {

@@ -21,3 +21,6 @@ public/uploads/
 # os
 .DS_Store
 Thumbs.db
+.vercel
+.env*
+!.env.example

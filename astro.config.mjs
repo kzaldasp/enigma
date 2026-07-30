@@ -15,6 +15,12 @@ export default defineConfig({
   // Vercel (sube comprobantes). Los endpoints validan sus propios datos.
   security: { checkOrigin: false },
   vite: {
-    plugins: [tailwindcss()],
+    // @tailwindcss/vite depende de vite 7 y astro 5 fija vite 6: hay dos
+    // copias de Vite en node_modules, así que sus tipos `Plugin` no encajan
+    // aunque en runtime son compatibles. El cast silencia ese falso positivo
+    // de `astro check` sin forzar versiones (un override de vite rompería
+    // vitest, que también pide la 7). Se puede quitar cuando astro suba a
+    // vite 7 y quede una sola copia.
+    plugins: [/** @type {any} */ (tailwindcss())],
   },
 });
