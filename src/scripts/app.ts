@@ -179,19 +179,37 @@ function initPreloader() {
     },
   });
 
-  if (mark) tl.fromTo(mark, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: EASE });
+  if (mark)
+    tl.fromTo(mark, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: EASE });
   tl.to(progress, {
     value: 100,
-    duration: 1.4,
+    duration: 1.1,
     ease: 'power2.inOut',
     onUpdate: () => {
       if (counter) counter.textContent = String(Math.round(progress.value)).padStart(3, '0');
       if (bar) gsap.set(bar, { scaleX: progress.value / 100 });
     },
   });
-  // La cortina sube revelando el hero — 0.9s, ease-out expo
-  tl.to(pre, { yPercent: -100, duration: 0.9, ease: 'expo.out' }, '+=0.15');
-  tl.add(() => heroIntro(0), '<+0.25');
+  // La cortina sube revelando el hero — expo.out
+  tl.to(pre, { yPercent: -100, duration: 0.8, ease: 'expo.out' }, '+=0.1');
+  tl.add(() => heroIntro(0), '<+0.2');
+
+  // El contador medía un progreso inventado de duración fija, así que la
+  // portada tardaba lo mismo en revelarse por rápida que fuera la conexión —
+  // y como el hero es el elemento LCP, esa espera era la métrica. Ahora el
+  // tramo del contador se acelera en cuanto la imagen del hero está decodificada
+  // (hasta 2,2× ) y solo se toma su tiempo completo si de verdad sigue cargando.
+  const heroImg = $('[data-hero] img') as HTMLImageElement | null;
+  if (heroImg) {
+    const rush = () => {
+      // La cortina y la intro se dejan intactas: solo se comprime la espera.
+      if (tl.progress() < 1) tl.timeScale(2.2);
+    };
+    if (heroImg.complete) rush();
+    else heroImg.addEventListener('load', rush, { once: true });
+    // Si la imagen falla, no tiene sentido seguir esperándola.
+    heroImg.addEventListener('error', rush, { once: true });
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -912,6 +930,24 @@ function trackPageview() {
   }
 }
 
+/**
+ * Segunda vista de las fichas del catálogo: solo aparece al pasar el puntero,
+ * así que en un teléfono duplicaba las imágenes descargadas sin que nadie las
+ * llegara a ver. El markup las deja en `data-hover-src` y aquí se convierten en
+ * `src` únicamente si el dispositivo tiene hover de verdad.
+ */
+function initHoverImages() {
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  for (const el of $$('img[data-hover-src]')) {
+    const img = el as HTMLImageElement;
+    const srcset = img.dataset.hoverSrcset;
+    if (srcset) img.srcset = srcset;
+    img.src = img.dataset.hoverSrc ?? '';
+    delete img.dataset.hoverSrc;
+    delete img.dataset.hoverSrcset;
+  }
+}
+
 function initPage() {
   abort = new AbortController();
   captureAttribution();
@@ -931,6 +967,7 @@ function initPage() {
   initReceiptUpload(abort.signal);
   initNewsletter(abort.signal);
   initReducedMotionVideos();
+  initHoverImages();
   // Recalcular posiciones cuando las fuentes terminan de cargar
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
 }

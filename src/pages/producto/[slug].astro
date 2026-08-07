@@ -1,219 +1,348 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import { getProducts, getProductBySlug, pickRelated } from '../../lib/products';
+import { getProducts, getProductBySlug, pickRelated, type Product } from '../../lib/products';
 import { getSiteContent } from '../../lib/content';
-import { categoryLabel } from '../../lib/categories';
+import { categoryLabel, getCategory } from '../../lib/categories';
 import { formatPrice } from '../../lib/site';
 import { cdnImage, cdnVideo } from '../../lib/cdn';
+import { clamp, firstFilled, resolvePageSeo, DESC_MAX } from '../../lib/seo';
 
 const { slug } = Astro.params;
 const product = slug ? await getProductBySlug(slug) : undefined;
-if (!product) {
-  return Astro.redirect('/404');
-}
 
-const products = await getProducts();
-const site = await getSiteContent();
-const { title, price, description, sizes, media, images, category, soldOut } = product;
-const related = pickRelated(products, product, 4);
-const badge = soldOut ? 'AGOTADO' : product.badge;
-const catLabel = await categoryLabel(category);
+/**
+ * Todo el detalle de la ficha se arma aquí para que la vista de "no
+ * encontrado" no dependa de datos del producto. Antes un slug inexistente
+ * hacía `Astro.redirect('/404')`: un 302 hacia una página que responde 200,
+ * así que Google indexaba errores como páginas válidas.
+ */
+async function buildFicha(p: Product) {
+  const [products, site, catLabel, cat] = await Promise.all([
+    getProducts(),
+    getSiteContent(),
+    categoryLabel(p.category),
+    getCategory(p.category),
+  ]);
 
-const toAbsolute = (url: string) =>
-  url.startsWith('http') ? url : new URL(url, Astro.site).href;
+  const path = `/producto/${p.slug}`;
+  const url = new URL(path, Astro.site).href;
+  const toAbsolute = (media: string) =>
+    media.startsWith('http') ? media : new URL(media, Astro.site).href;
 
-const jsonLd = JSON.stringify([
-  {
+  // El label del admin llega en su forma de menú ("Gorras"); en medio de una
+  // frase va en minúscula.
+  const catLower = catLabel.toLocaleLowerCase('es-EC');
+  const cierre = `${catLower} de ENIGMA®, con envío a todo el Ecuador.`;
+  // Con descripción en el admin se usa esa y el cierre queda como frase
+  // aparte; sin ella se arma con el nombre y la categoría, que es mejor que
+  // una meta vacía.
+  const generada = p.description.trim()
+    ? `${clamp(p.description, DESC_MAX - cierre.length - 2)} ${cierre[0]!.toUpperCase()}${cierre.slice(1)}`
+    : `${p.title}, ${cierre}`;
+  const seo = await resolvePageSeo(path, {
+    // El SEO por pieza del admin manda; si está vacío se genera uno que
+    // nombra la categoría y el país, que es como se busca la marca.
+    title: firstFilled(p.seoTitle, `${p.title} — ${catLabel}`),
+    description: firstFilled(p.seoDescription, generada),
+  });
+
+  const brand = p.brand || 'ENIGMA';
+  // Talla sin stock controlado (null) = disponible: el admin no la sigue.
+  const availableSizes = p.sizes.filter((s) => s.stock !== 0).map((s) => s.size);
+  const availability = p.soldOut ? 'OutOfStock' : 'InStock';
+  // Los precios se revisan por temporada; un año evita el aviso de
+  // `priceValidUntil` vencido en Search Console sin prometer congelarlo.
+  const priceValidUntil = new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10);
+  const country = site.contactCountry || 'EC';
+
+  const shippingDetails = {
+    '@type': 'OfferShippingDetails',
+    shippingRate: {
+      '@type': 'MonetaryAmount',
+      value: site.shippingCost,
+      currency: 'USD',
+    },
+    shippingDestination: { '@type': 'DefinedRegion', addressCountry: country },
+    description:
+      site.shippingFreeFrom > 0
+        ? `${site.shippingText} Envío gratis desde $${site.shippingFreeFrom} USD.`
+        : site.shippingText,
+  };
+
+  // El texto de cambios habla de 15 días para cambio de talla; se declara
+  // exactamente eso. `returnFees` y `returnMethod` quedan fuera a propósito:
+  // la política no los define y no se inventan.
+  const returnPolicy = {
+    '@type': 'MerchantReturnPolicy',
+    applicableCountry: country,
+    returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+    merchantReturnDays: 15,
+    description: site.returnsText,
+  };
+
+  /**
+   * Una sola `Offer` para toda la pieza, no una por talla ni `AggregateOffer`:
+   * todas las tallas comparten precio y no existe URL propia por talla, así
+   * que varias ofertas idénticas solo añadirían ruido. Las tallas se declaran
+   * en `size` y el desglose real por variante vive en /feed.xml, agrupado con
+   * `item_group_id`. Sin reseñas: nada de aggregateRating ni review.
+   */
+  const offer = {
+    '@type': 'Offer',
+    url,
+    priceCurrency: 'USD',
+    price: p.price,
+    priceValidUntil,
+    itemCondition: 'https://schema.org/NewCondition',
+    availability: `https://schema.org/${availability}`,
+    // La compra se cierra por transferencia con comprobante validado a mano.
+    acceptedPaymentMethod: 'http://purl.org/goodrelations/v1#ByBankTransferInAdvance',
+    seller: { '@id': new URL('/#organization', Astro.site).href },
+    shippingDetails,
+    hasMerchantReturnPolicy: returnPolicy,
+  };
+
+  const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: title,
-    description,
-    sku: `p${product.id}`,
-    image: images.map(toAbsolute),
-    brand: { '@type': 'Brand', name: 'ENIGMA' },
-    offers: {
-      '@type': 'Offer',
-      url: new URL(`/producto/${product.slug}`, Astro.site).href,
-      priceCurrency: 'USD',
-      price,
-      itemCondition: 'https://schema.org/NewCondition',
-      availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-    },
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Catálogo',
-        item: new URL('/catalogo', Astro.site).href,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: catLabel,
-        item: new URL(`/catalogo?categoria=${category}`, Astro.site).href,
-      },
-      { '@type': 'ListItem', position: 3, name: title },
-    ],
-  },
-]);
+    '@id': `${url}#product`,
+    url,
+    name: p.title,
+    description: firstFilled(p.description, seo.description),
+    image: p.images.map(toAbsolute),
+    sku: `p${p.id}`,
+    brand: { '@type': 'Brand', name: brand },
+    // Identificadores solo si el admin los llenó: inventar un GTIN o un MPN
+    // es motivo de rechazo en Merchant Center.
+    ...(p.gtin ? { gtin: p.gtin } : {}),
+    ...(p.mpn ? { mpn: p.mpn } : {}),
+    ...(p.color ? { color: p.color } : {}),
+    ...(p.material ? { material: p.material } : {}),
+    ...(availableSizes.length ? { size: availableSizes } : {}),
+    ...(p.gender || p.ageGroup
+      ? {
+          audience: {
+            '@type': 'PeopleAudience',
+            ...(p.gender ? { suggestedGender: p.gender } : {}),
+            ...(p.ageGroup ? { suggestedAge: { '@type': 'QuantitativeValue', name: p.ageGroup } } : {}),
+          },
+        }
+      : {}),
+    category: firstFilled(p.googleCategory, cat?.googleCategory, catLabel),
+    ...(p.createdAt ? { releaseDate: p.createdAt.slice(0, 10) } : {}),
+    offers: offer,
+  };
+
+  return {
+    ...p,
+    site,
+    catLabel,
+    seo,
+    noindex: p.seoNoindex || seo.noindex,
+    ogImage: firstFilled(seo.ogImage, p.images[0]) || undefined,
+    badge: p.soldOut ? 'AGOTADO' : p.badge,
+    related: pickRelated(products, p, 4),
+    jsonLd,
+  };
+}
+
+const ficha = product ? await buildFicha(product) : null;
+if (!ficha) {
+  Astro.response.status = 404;
+}
 ---
 
-<Base title={`${title} — ENIGMA®`} description={description} ogImage={images[0]}>
-  <script is:inline type="application/ld+json" set:html={jsonLd} slot="head" />
-
-  <article class="bg-bone pt-24 pb-section text-ink md:pt-32">
-    <div class="wrap">
-      <nav aria-label="Miga de pan" class="caps mb-10 flex gap-3 text-stone" data-reveal>
-        <a href="/catalogo" class="u-link tap">CATÁLOGO</a>
-        <span aria-hidden="true">/</span>
-        <a href={`/catalogo?categoria=${category}`} class="u-link tap">{catLabel}</a>
-      </nav>
-
-      <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
-        <!-- Galería vertical: scroll natural, sin carrusel -->
-        <div class="flex flex-col gap-6">
-          {
-            media.map((m, i) =>
-              m.type === 'video' ? (
-                <video
-                  src={cdnVideo(m.url)}
-                  class="w-full"
-                  autoplay
-                  muted
-                  loop
-                  playsinline
-                  aria-label={`${title}, video de la pieza`}
-                />
-              ) : (
-                <img
-                  src={cdnImage(m.url, 1400)}
-                  alt={i === 0 ? `${title}, vista de la pieza` : `${title}, pieza en modelo`}
-                  class="w-full"
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  fetchpriority={i === 0 ? 'high' : undefined}
-                />
-              ),
-            )
-          }
+{
+  !ficha ? (
+    <Base
+      title="Pieza no encontrada — ENIGMA®"
+      description="Esta pieza ya no está en el catálogo."
+      noindex
+    >
+      <section class="flex min-h-[70svh] items-center bg-bone pt-24 text-ink">
+        <div class="wrap">
+          <p class="caps text-stone">ERROR 404</p>
+          <h1 class="mt-6 font-display text-section tracking-display">
+            Esta pieza ya no está aquí.
+          </h1>
+          <a href="/catalogo" class="btn btn-ink mt-12">VER EL CATÁLOGO</a>
         </div>
+      </section>
+    </Base>
+  ) : (
+    <Base
+      title={ficha.seo.title}
+      description={ficha.seo.description}
+      ogImage={ficha.ogImage}
+      ogType="product"
+      noindex={ficha.noindex}
+      breadcrumbs={[
+        { name: 'Catálogo', path: '/catalogo' },
+        { name: ficha.catLabel, path: `/catalogo/${ficha.category}` },
+        { name: ficha.title },
+      ]}
+      jsonLd={ficha.jsonLd}
+    >
+      <article class="bg-bone pt-24 pb-section text-ink md:pt-32">
+        <div class="wrap">
+          <nav aria-label="Miga de pan" class="caps mb-10 flex gap-3 text-stone" data-reveal>
+            <a href="/catalogo" class="u-link tap">
+              CATÁLOGO
+            </a>
+            <span aria-hidden="true">/</span>
+            <a href={`/catalogo/${ficha.category}`} class="u-link tap">
+              {ficha.catLabel}
+            </a>
+          </nav>
 
-        <!-- Columna sticky de compra -->
-        <div
-          class="lg:sticky lg:top-28 lg:self-start"
-          data-product
-          data-product-slug={product.slug}
-          data-product-title={title}
-          data-product-price={price}
-          data-product-image={images[0] ?? media[0]?.url ?? ''}
-        >
-          {badge && <p class={`caps mb-4 ${soldOut ? 'text-stone' : ''}`}>{badge}</p>}
-          <h1 class="font-display text-product tracking-display">{title}</h1>
-          <p class="caps mt-3 text-stone">{formatPrice(price)}</p>
-          <p class="mt-7 max-w-md leading-relaxed">{description}</p>
-
-          <fieldset class="mt-10">
-            <legend class="caps text-stone">Talle</legend>
-            <div class="mt-4 flex flex-wrap gap-3">
-              {
-                sizes.map(({ size, stock }) => {
-                  const out = stock === 0;
-                  return (
-                    <label class="size-opt">
-                      <input
-                        type="radio"
-                        name="talle"
-                        value={size}
-                        class="peer sr-only"
-                        disabled={out}
-                      />
-                      <span
-                        class={`caps flex h-12 min-w-12 items-center justify-center border border-line px-3 transition-colors duration-300 peer-checked:border-ink peer-checked:bg-ink peer-checked:text-bone peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-ink ${out ? 'text-stone line-through opacity-50' : 'hover:border-ink'}`}
-                      >
-                        {size}
-                      </span>
-                    </label>
-                  );
-                })
-              }
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
+            {/* Galería vertical: scroll natural, sin carrusel */}
+            <div class="flex flex-col gap-6">
+              {ficha.media.map((m, i) =>
+                m.type === 'video' ? (
+                  <video
+                    src={cdnVideo(m.url)}
+                    class="w-full"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    aria-label={`${ficha.title}, video de la pieza`}
+                  />
+                ) : (
+                  <img
+                    src={cdnImage(m.url, 1400)}
+                    alt={
+                      i === 0
+                        ? `${ficha.title}, vista de la pieza`
+                        : `${ficha.title}, pieza en modelo`
+                    }
+                    class="w-full"
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : undefined}
+                  />
+                ),
+              )}
             </div>
-            <p data-size-hint hidden class="caps mt-4 text-stone" role="status">
-              ELIGE UN TALLE PRIMERO
-            </p>
-          </fieldset>
 
-          <div class="mt-10 flex flex-col gap-3">
-            {
-              soldOut ? (
-                <a
-                  href="#"
-                  class="btn btn-ink w-full"
-                  data-wa-product={title}
-                  data-wa-number={site.whatsappNumber}
-                  data-wa-soldout
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  AGOTADO — AVISARME CUANDO VUELVA
-                </a>
-              ) : (
-                <>
-                  <button type="button" class="btn btn-ink w-full" data-add-to-cart>
-                    AGREGAR A LA BOLSA
-                  </button>
-                  {/* Se muestra en cuanto la bolsa tiene algo, no solo al
-                      agregar: el paso siguiente queda siempre a la vista, con
-                      el mismo peso visual que tenía el botón de WhatsApp. */}
-                  <a href="/carrito" class="btn w-full border border-ink" data-cart-link hidden>
-                    VER BOLSA (<span data-cart-link-count>0</span>)
+            {/* Columna sticky de compra */}
+            <div
+              class="lg:sticky lg:top-28 lg:self-start"
+              data-product
+              data-product-slug={ficha.slug}
+              data-product-title={ficha.title}
+              data-product-price={ficha.price}
+              data-product-image={ficha.images[0] ?? ficha.media[0]?.url ?? ''}
+            >
+              {ficha.badge && <p class={`caps mb-4 ${ficha.soldOut ? 'text-stone' : ''}`}>{ficha.badge}</p>}
+              <h1 class="font-display text-product tracking-display">{ficha.title}</h1>
+              <p class="caps mt-3 text-stone">{formatPrice(ficha.price)}</p>
+              <p class="mt-7 max-w-md leading-relaxed">{ficha.description}</p>
+
+              <fieldset class="mt-10">
+                <legend class="caps text-stone">Talle</legend>
+                <div class="mt-4 flex flex-wrap gap-3">
+                  {ficha.sizes.map(({ size, stock }) => {
+                    const out = stock === 0;
+                    return (
+                      <label class="size-opt">
+                        <input
+                          type="radio"
+                          name="talle"
+                          value={size}
+                          class="peer sr-only"
+                          disabled={out}
+                        />
+                        <span
+                          class={`caps flex h-12 min-w-12 items-center justify-center border border-line px-3 transition-colors duration-300 peer-checked:border-ink peer-checked:bg-ink peer-checked:text-bone peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-ink ${out ? 'text-stone line-through opacity-50' : 'hover:border-ink'}`}
+                        >
+                          {size}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p data-size-hint hidden class="caps mt-4 text-stone" role="status">
+                  ELIGE UN TALLE PRIMERO
+                </p>
+              </fieldset>
+
+              <div class="mt-10 flex flex-col gap-3">
+                {ficha.soldOut ? (
+                  <a
+                    href="#"
+                    class="btn btn-ink w-full"
+                    data-wa-product={ficha.title}
+                    data-wa-number={ficha.site.whatsappNumber}
+                    data-wa-soldout
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    AGOTADO — AVISARME CUANDO VUELVA
                   </a>
-                  <p data-cart-added hidden class="caps text-stone" role="status"></p>
-                </>
-              )
-            }
-          </div>
+                ) : (
+                  <>
+                    <button type="button" class="btn btn-ink w-full" data-add-to-cart>
+                      AGREGAR A LA BOLSA
+                    </button>
+                    {/* Se muestra en cuanto la bolsa tiene algo, no solo al
+                        agregar: el paso siguiente queda siempre a la vista, con
+                        el mismo peso visual que tenía el botón de WhatsApp. */}
+                    <a href="/carrito" class="btn w-full border border-ink" data-cart-link hidden>
+                      VER BOLSA (<span data-cart-link-count>0</span>)
+                    </a>
+                    <p data-cart-added hidden class="caps text-stone" role="status"></p>
+                  </>
+                )}
+              </div>
 
-          <!-- Acordeones hairline -->
-          <div class="mt-12">
-            <details class="acc">
-              <summary class="caps">DETALLES</summary>
-              <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
-                {description} Producción en serie corta, numerada. Composición y cuidados en la
-                etiqueta interior.
-              </p>
-            </details>
-            <details class="acc">
-              <summary class="caps">ENVÍOS</summary>
-              <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
-                {site.shippingText}
-              </p>
-            </details>
-            <details class="acc">
-              <summary class="caps">CAMBIOS</summary>
-              <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
-                {site.returnsText}
-              </p>
-            </details>
+              {/* Acordeones hairline */}
+              <div class="mt-12">
+                <details class="acc">
+                  <summary class="caps">DETALLES</summary>
+                  <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
+                    {ficha.description} Producción en serie corta, numerada. Composición y cuidados
+                    en la etiqueta interior.
+                  </p>
+                </details>
+                <details class="acc">
+                  <summary class="caps">ENVÍOS</summary>
+                  <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
+                    {ficha.site.shippingText}
+                  </p>
+                </details>
+                <details class="acc">
+                  <summary class="caps">CAMBIOS</summary>
+                  <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
+                    {ficha.site.returnsText}
+                  </p>
+                </details>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Relacionados -->
-    <section class="wrap mt-[var(--spacing-section)]" aria-labelledby="related-title">
-      <div class="mb-12 flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-reveal>
-        <h2 id="related-title" class="font-display text-product tracking-display">
-          También te puede interesar
-        </h2>
-        <a href="/catalogo" class="u-link caps tap pb-2">VER TODO →</a>
-      </div>
-      <div class="grid grid-cols-2 gap-x-6 gap-y-12 md:gap-x-10 lg:grid-cols-4 lg:gap-x-12" data-reveal-group>
-        {related.map((p) => <ProductCard product={p} />)}
-      </div>
-    </section>
-  </article>
-</Base>
+        {/* Relacionados */}
+        <section class="wrap mt-[var(--spacing-section)]" aria-labelledby="related-title">
+          <div class="mb-12 flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-reveal>
+            <h2 id="related-title" class="font-display text-product tracking-display">
+              También te puede interesar
+            </h2>
+            <a href="/catalogo" class="u-link caps tap pb-2">
+              VER TODO →
+            </a>
+          </div>
+          <div
+            class="grid grid-cols-2 gap-x-6 gap-y-12 md:gap-x-10 lg:grid-cols-4 lg:gap-x-12"
+            data-reveal-group
+          >
+            {ficha.related.map((p) => (
+              <ProductCard product={p} />
+            ))}
+          </div>
+        </section>
+      </article>
+    </Base>
+  )
+}

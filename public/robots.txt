@@ -1,7 +1,25 @@
+# ENIGMA® — enigma593.com
+# El panel de administración es otro despliegue y se bloquea en su propio
+# robots.txt; desde aquí no hay ninguna ruta que lleve a él.
+
 User-agent: *
 Allow: /
-Disallow: /pedido/
-Disallow: /checkout
-Disallow: /carrito
 
-Sitemap: https://enigma-1nor.vercel.app/sitemap.xml
+# Rutas de la compra: privadas del cliente, sin valor en buscadores.
+Disallow: /carrito
+Disallow: /checkout
+Disallow: /pedido/
+
+# Endpoints internos (pedidos, comprobantes, cupones, métricas).
+Disallow: /api/
+
+# El filtro por parámetro duplica el contenido de /catalogo/<categoria>,
+# que es la versión indexable.
+Disallow: /catalogo?
+Disallow: /*?categoria=
+Disallow: /*?q=
+
+# El feed es para Google Merchant Center, no para el índice de búsqueda.
+Disallow: /feed.xml
+
+Sitemap: https://enigma593.com/sitemap.xml

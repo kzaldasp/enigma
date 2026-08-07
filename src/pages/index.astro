@@ -9,15 +9,26 @@ import Manifiesto from '../components/Manifiesto.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { getProducts, pickNew } from '../lib/products';
 import { getSiteContent } from '../lib/content';
+import { resolvePageSeo } from '../lib/seo';
 
 const products = await getProducts();
 const novedades = pickNew(products, 4);
 const { siteDescription } = await getSiteContent();
+
+// El H1 y el texto del hero son piezas de diseño (animación por líneas), así
+// que aquí solo se resuelven los metadatos: `heading`/`intro` del admin no se
+// pintan en el home porque no hay hueco donde encajen sin romper el hero.
+const seo = await resolvePageSeo('/', {
+  title: 'Gorras y ropa de lujo — marca ecuatoriana',
+  description: siteDescription,
+});
 ---
 
 <Base
-  title="ENIGMA® — Marca ecuatoriana de gorras"
-  description={siteDescription}
+  title={seo.title}
+  description={seo.description}
+  ogImage={seo.ogImage || undefined}
+  noindex={seo.noindex}
   headerTheme="dark"
 >
   <Preloader />

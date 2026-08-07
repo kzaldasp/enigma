@@ -3,10 +3,10 @@ import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import vercel from '@astrojs/vercel';
 
-// Dominio público (canonical, OG, JSON-LD, sitemap). Cuando tengan dominio
-// propio basta definir PUBLIC_SITE_URL en Vercel y redesplegar.
+// Dominio público (canonical, OG, JSON-LD, sitemap). PUBLIC_SITE_URL lo puede
+// sobreescribir en Vercel; el default es el dominio real de la marca.
 export default defineConfig({
-  site: process.env.PUBLIC_SITE_URL ?? 'https://enigma-1nor.vercel.app',
+  site: process.env.PUBLIC_SITE_URL ?? 'https://enigma593.com',
   // SSR: el catálogo y los textos viven en Turso y se leen por request
   // (con caché de 60 s en src/lib/db.ts).
   output: 'server',

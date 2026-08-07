@@ -43,6 +43,22 @@ export type SiteContent = {
   shippingFreeFrom: number;
   legalTerms: string;
   legalPrivacy: string;
+  /* SEO e identidad del negocio (admin → SEO). */
+  /** Provincia y país para el schema Organization; la ciudad va en contactCity. */
+  contactRegion: string;
+  contactCountry: string;
+  contactFacebook: string;
+  contactTiktok: string;
+  /** Año de fundación para `foundingDate` del schema. */
+  orgFoundingYear: string;
+  /** Códigos de verificación de propiedad del sitio. */
+  seoVerificationGoogle: string;
+  seoVerificationBing: string;
+  seoVerificationMeta: string;
+  /** Imagen social por defecto; vacío = /og.jpg. */
+  seoDefaultOgImage: string;
+  /** false = /feed.xml responde 404 (feed de Merchant Center apagado). */
+  seoFeedEnabled: boolean;
 };
 
 const DEFAULTS: Record<string, string> = {
@@ -55,7 +71,18 @@ const DEFAULTS: Record<string, string> = {
     'Acceso anticipado a cada serie, antes de que se agote. Nada más: sin promociones, sin ruido.',
   contact_email: 'contacto@enigma593.com',
   contact_instagram: 'https://instagram.com/enigma',
-  contact_city: 'QUITO — ECUADOR',
+  // La marca es de Ibarra; el schema no debe declarar una ciudad que no es.
+  contact_city: 'IBARRA — ECUADOR',
+  contact_region: 'Imbabura',
+  contact_country: 'EC',
+  contact_facebook: '',
+  contact_tiktok: '',
+  org_founding_year: '2024',
+  seo_verification_google: '',
+  seo_verification_bing: '',
+  seo_verification_meta: '',
+  seo_default_og_image: '',
+  seo_feed_enabled: '1',
   whatsapp_number: '593980324621',
   shipping_text:
     'Despacho en 24–48 h dentro de Ecuador. Quito y Guayaquil: 1–2 días hábiles; resto del país: 2–4. Envío internacional bajo cotización por WhatsApp.',
@@ -72,7 +99,7 @@ const DEFAULTS: Record<string, string> = {
   marca_title_lines:
     'Enigma no es un logotipo.\nEs la decisión de no explicarse:\npiezas que sostienen la mirada sin devolverla.',
   marca_paragraphs:
-    'ENIGMA nace en Quito en 2024. Cada temporada es una serie corta: pocas piezas, pocas unidades, cero reposición. Lo que se agota, se agota.\n\nTrabajamos con talleres a menos de veinte kilómetros del estudio, con materiales que mejoran con el uso y costuras pensadas para durar más que la tendencia.\n\nEl pedido se arma en la bolsa y se paga por transferencia: eliges, confirmas y validamos. Si algo no calza, escríbenos y lo resolvemos con una persona, no con un formulario.',
+    'ENIGMA nace en Ibarra en 2024. Cada temporada es una serie corta: pocas piezas, pocas unidades, cero reposición. Lo que se agota, se agota.\n\nTrabajamos con talleres a menos de veinte kilómetros del estudio, con materiales que mejoran con el uso y costuras pensadas para durar más que la tendencia.\n\nEl pedido se arma en la bolsa y se paga por transferencia: eliges, confirmas y validamos. Si algo no calza, escríbenos y lo resolvemos con una persona, no con un formulario.',
   marca_seo_title: 'Sobre la marca',
   marca_seo_description:
     'ENIGMA es una marca ecuatoriana de gorras. Series cortas, materiales honestos y un canal directo: hablas con quien hace las piezas.',
@@ -131,6 +158,16 @@ export async function getSiteContent(): Promise<SiteContent> {
       shippingFreeFrom: Number(map.shipping_free_from) || 0,
       legalTerms: map.legal_terms,
       legalPrivacy: map.legal_privacy,
+      contactRegion: map.contact_region,
+      contactCountry: map.contact_country,
+      contactFacebook: map.contact_facebook,
+      contactTiktok: map.contact_tiktok,
+      orgFoundingYear: map.org_founding_year,
+      seoVerificationGoogle: map.seo_verification_google,
+      seoVerificationBing: map.seo_verification_bing,
+      seoVerificationMeta: map.seo_verification_meta,
+      seoDefaultOgImage: map.seo_default_og_image,
+      seoFeedEnabled: map.seo_feed_enabled !== '0',
     } satisfies SiteContent;
   });
 }

@@ -5,6 +5,7 @@ import { campaignImage } from '../../lib/images';
 import { getCampaigns } from '../../lib/campaigns';
 import { getSiteContent } from '../../lib/content';
 import { cdnImage, cdnVideo } from '../../lib/cdn';
+import { resolvePageSeo } from '../../lib/seo';
 
 /**
  * Lookbook: muestra la campaña publicada más reciente (admin → Campañas).
@@ -34,12 +35,53 @@ const staticLooks = [
   { key: 'lookbook-06', piece: 'TOTE ARCHIVO', slug: 'tote-archivo', width: 'lg:w-[72%]', align: 'lg:self-center' },
 ];
 
-const title = current ? `${current.title} — ENIGMA®` : 'Lookbook — ENIGMA®';
-const description = current?.description
-  ?? 'Lookbook de ENIGMA. La colección puesta, sin retoque y sin discurso.';
+const seo = await resolvePageSeo('/lookbook', {
+  title: current ? `Lookbook ${current.title}` : 'Lookbook de gorras y ropa de lujo',
+  description:
+    current?.description ??
+    'Lookbook de ENIGMA®: la colección puesta, sin retoque y sin discurso. Gorras y ropa de lujo hechas en Ibarra, con envíos a todo el Ecuador.',
+  heading: current?.title ?? 'Lookbook',
+  intro: current?.description ?? '',
+});
+
+// Colección de campañas publicadas: las que se ven en la página (la actual y
+// las anteriores enlazadas abajo). Sin campañas en la DB el lookbook cae al
+// editorial estático, y entonces no hay lista real que declarar.
+const listed = current ? [current, ...others] : [];
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': new URL('/lookbook', Astro.site).href,
+  url: new URL('/lookbook', Astro.site).href,
+  name: seo.title,
+  description: seo.description,
+  inLanguage: 'es-EC',
+  ...(listed.length > 0
+    ? {
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: listed.length,
+          itemListElement: listed.map((c, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: c.title,
+            url: new URL(`/lookbook/${c.slug}`, Astro.site).href,
+          })),
+        },
+      }
+    : {}),
+};
 ---
 
-<Base title={title} description={description} headerTheme="dark">
+<Base
+  title={seo.title}
+  description={seo.description}
+  ogImage={seo.ogImage || undefined}
+  noindex={seo.noindex}
+  headerTheme="dark"
+  breadcrumbs={[{ name: 'Lookbook' }]}
+  jsonLd={jsonLd}
+>
   <section class="bg-ink pt-36 pb-section text-bone md:pt-48">
     <div class="wrap">
       <header class="max-w-2xl" data-lines>
@@ -47,12 +89,12 @@ const description = current?.description
           {current?.seasonLine ?? 'VERANO 2026 — EDITORIAL'}
         </p>
         <h1 class="font-display text-section tracking-display">
-          <span data-line><span class="line-in">{current?.title ?? 'Lookbook'}</span></span>
+          <span data-line><span class="line-in">{seo.heading}</span></span>
         </h1>
         {
-          current?.description && (
+          seo.intro && (
             <p class="mt-6 max-w-md text-stone" data-reveal>
-              {current.description}
+              {seo.intro}
             </p>
           )
         }

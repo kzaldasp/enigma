@@ -1,6 +1,7 @@
 ---
 import { navItems } from '../lib/site';
 import { getSiteContent } from '../lib/content';
+import { getCategories } from '../lib/categories';
 
 interface Props {
   /** 'dark' cuando la página abre con hero oscuro (texto hueso sobre la foto). */
@@ -15,6 +16,12 @@ const { contactInstagram, contactCity, lookbookEnabled } = await getSiteContent(
 
 const nav = navItems(lookbookEnabled);
 const menuItems = [...nav, { label: 'CONTACTO', href: '/marca' }];
+
+// Las categorías van al final del overlay móvil, no a la navegación de
+// escritorio: ahí los cuatro enlaces ya ocupan el 91% del ancho útil (ver el
+// comentario de abajo). El header aparece en todo el sitio, así que un fallo
+// de la base no puede tumbarlo.
+const categories = await getCategories().catch(() => []);
 ---
 
 <!-- La navegación horizontal aparece en `lg`, no en `md`: a 768px los cuatro
@@ -131,6 +138,25 @@ const menuItems = [...nav, { label: 'CONTACTO', href: '/marca' }];
           ))
         }
       </ol>
+
+      {
+        /* Categorías: enlaces a las rutas indexables /catalogo/<slug>. Llevan
+           `data-menu-item` para entrar en la animación escalonada y en la
+           trampa de foco del overlay (ver initMenu en app.ts). */
+        categories.length > 0 && (
+          <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+            {categories.map((category) => (
+              <a
+                href={`/catalogo/${category.slug}`}
+                data-menu-item
+                class="u-link caps tap text-stone"
+              >
+                {category.label}
+              </a>
+            ))}
+          </div>
+        )
+      }
     </nav>
     <div class="wrap mt-6 flex w-full shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2">
       <a

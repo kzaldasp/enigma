@@ -1,7 +1,7 @@
 ---
 import { campaignImage } from '../lib/images';
 import { getSiteContent } from '../lib/content';
-import { cdnImage } from '../lib/cdn';
+import { cdnImage, cdnSrcset } from '../lib/cdn';
 
 const { seasonLine, heroImageUrl } = await getSiteContent();
 // Imagen subida desde el admin (Contenido) o el asset local por defecto.
@@ -30,12 +30,18 @@ const hero = heroImageUrl ? null : campaignImage('hero');
         fetchpriority="high"
       />
     ) : (
+      // El hero es el elemento LCP de la portada: `srcset` evita bajar 2000 px
+      // en un teléfono, que es lo que arruinaba la métrica con datos móviles.
+      // `sizes="100vw"` porque el `object-fit: cover` lo estira a todo el ancho.
       <img
         src={cdnImage(heroImageUrl, 2000)}
-        alt="Campaña ENIGMA"
+        srcset={cdnSrcset(heroImageUrl)}
+        sizes="100vw"
+        alt="Campaña ENIGMA: gorras y prendas de la serie en curso"
         data-parallax
         loading="eager"
         fetchpriority="high"
+        decoding="sync"
       />
     )
   }

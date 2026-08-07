@@ -1,7 +1,12 @@
 ---
 import type { Product } from '../lib/products';
 import { formatPrice } from '../lib/site';
-import { cdnImage, cdnVideo } from '../lib/cdn';
+import { cdnImage, cdnSrcset, cdnVideo } from '../lib/cdn';
+
+// La rejilla va a 2 columnas en móvil y 4 desde escritorio: con esto el
+// navegador pide ~50vw o ~25vw en vez de los 800 px fijos de antes.
+const CARD_SIZES = '(min-width: 1024px) 25vw, 50vw';
+const CARD_WIDTHS = [320, 480, 640, 800] as const;
 
 interface Props {
   product: Product;
@@ -39,9 +44,13 @@ const alternate = media[1] ?? null;
       ) : (
         <img
           src={front ? cdnImage(front.url, 800) : undefined}
+          srcset={front ? cdnSrcset(front.url, CARD_WIDTHS) : undefined}
+          sizes={CARD_SIZES}
           alt={`${title}, vista de la pieza`}
           class={`h-full w-full object-cover transition-opacity duration-500 ${alternate ? 'group-hover:opacity-0' : ''}`}
           loading={eager ? 'eager' : 'lazy'}
+          fetchpriority={eager ? 'high' : undefined}
+          decoding={eager ? 'sync' : 'async'}
         />
       )
     }
@@ -58,8 +67,13 @@ const alternate = media[1] ?? null;
             aria-hidden="true"
           />
         ) : (
+          // Segunda vista: solo se ve al pasar el puntero, así que en móvil
+          // sería peso puro. `data-hover-src` deja que app.ts la resuelva solo
+          // en dispositivos con hover real.
           <img
-            src={cdnImage(alternate.url, 800)}
+            data-hover-src={cdnImage(alternate.url, 800)}
+            data-hover-srcset={cdnSrcset(alternate.url, CARD_WIDTHS)}
+            sizes={CARD_SIZES}
             alt=""
             aria-hidden="true"
             class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"

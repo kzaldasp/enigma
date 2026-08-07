@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import CampaignEditorial from '../../components/CampaignEditorial.astro';
 import { getCampaignBySlug } from '../../lib/campaigns';
 import { getSiteContent } from '../../lib/content';
+import { resolvePageSeo } from '../../lib/seo';
 
 // Lookbook apagado desde el admin: también las campañas quedan fuera.
 const { lookbookEnabled } = await getSiteContent();
@@ -15,12 +16,54 @@ const campaign = slug ? await getCampaignBySlug(slug) : undefined;
 if (!campaign || campaign.items.length === 0) {
   return Astro.redirect('/lookbook');
 }
+
+const path = `/lookbook/${campaign.slug}`;
+const seo = await resolvePageSeo(path, {
+  title: `Lookbook ${campaign.title}`,
+  description:
+    campaign.description ??
+    `Campaña ${campaign.title} de ENIGMA®: gorras y ropa de lujo hechas en Ibarra, con envíos a todo el Ecuador.`,
+  heading: campaign.title,
+  intro: campaign.description ?? '',
+});
+
+// Galería de la campaña: solo las piezas que se pintan abajo. Las imágenes van
+// como ImageGallery; los vídeos se quedan fuera de la lista de imágenes.
+const images = campaign.items.filter((item) => item.type === 'image');
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': ['CollectionPage', 'ImageGallery'],
+  '@id': new URL(path, Astro.site).href,
+  url: new URL(path, Astro.site).href,
+  name: seo.title,
+  description: seo.description,
+  inLanguage: 'es-EC',
+  ...(images.length > 0
+    ? {
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: images.length,
+          itemListElement: images.map((item, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            ...(item.caption ? { name: item.caption } : {}),
+            ...(item.link ? { url: new URL(item.link, Astro.site).href } : {}),
+            image: new URL(item.url, Astro.site).href,
+          })),
+        },
+      }
+    : {}),
+};
 ---
 
 <Base
-  title={`${campaign.title} — ENIGMA®`}
-  description={campaign.description ?? `Campaña ${campaign.title} de ENIGMA.`}
+  title={seo.title}
+  description={seo.description}
+  ogImage={seo.ogImage || undefined}
+  noindex={seo.noindex}
   headerTheme="dark"
+  breadcrumbs={[{ name: 'Lookbook', path: '/lookbook' }, { name: campaign.title }]}
+  jsonLd={jsonLd}
 >
   <section class="bg-ink pt-36 pb-section text-bone md:pt-48">
     <div class="wrap">
@@ -39,12 +82,12 @@ if (!campaign || campaign.items.length === 0) {
           )
         }
         <h1 class="font-display text-section tracking-display">
-          <span data-line><span class="line-in">{campaign.title}</span></span>
+          <span data-line><span class="line-in">{seo.heading}</span></span>
         </h1>
         {
-          campaign.description && (
+          seo.intro && (
             <p class="mt-6 max-w-md text-stone" data-reveal>
-              {campaign.description}
+              {seo.intro}
             </p>
           )
         }

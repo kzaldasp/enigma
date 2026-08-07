@@ -21,7 +21,29 @@ export type Product = {
   badge: string | null;
   /** AGOTADO manual o todas las tallas con stock controlado en 0. */
   soldOut: boolean;
+  /** Fecha de alta; alimenta el `lastmod` del sitemap. */
+  createdAt: string;
+  /** SEO editable desde el admin. Vacío = se genera del nombre/descripción. */
+  seoTitle: string;
+  seoDescription: string;
+  /** 1 en el admin = la pieza no se indexa ni entra al sitemap/feed. */
+  seoNoindex: boolean;
+  /** Atributos del feed de Merchant Center. `brand` vacío = ENIGMA. */
+  brand: string;
+  gtin: string;
+  mpn: string;
+  color: string;
+  material: string;
+  gender: string;
+  ageGroup: string;
+  googleCategory: string;
 };
+
+/** Las columnas de SEO/feed son nuevas: en una base sin migrar llegan como
+ *  undefined y aquí se normalizan a cadena vacía. */
+function str(value: unknown): string {
+  return value == null ? '' : String(value);
+}
 
 function computeSoldOut(badge: string | null, sizes: ProductSize[]): boolean {
   if (badge === 'AGOTADO') return true;
@@ -82,6 +104,18 @@ export async function getProducts(): Promise<Product[]> {
         category: String(p.category) as Category,
         badge,
         soldOut: computeSoldOut(badge, productSizes),
+        createdAt: String(p.created_at ?? ''),
+        seoTitle: str(p.seo_title),
+        seoDescription: str(p.seo_description),
+        seoNoindex: Number(p.seo_noindex ?? 0) === 1,
+        brand: str(p.brand),
+        gtin: str(p.gtin),
+        mpn: str(p.mpn),
+        color: str(p.color),
+        material: str(p.material),
+        gender: str(p.gender),
+        ageGroup: str(p.age_group),
+        googleCategory: str(p.google_category),
       } satisfies Product;
     });
   });

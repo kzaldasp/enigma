@@ -10,6 +10,9 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { SITE_NAME } from '../lib/site';
 import { getSiteContent } from '../lib/content';
+import { cdnImage, cdnSrcset } from '../lib/cdn';
+import { getPageSeo, firstFilled } from '../lib/seo';
+import { SITE_DESCRIPTION } from '../lib/site';
 import {
   fontStack,
   googleFontsHref,
@@ -19,6 +22,17 @@ import {
 } from '../lib/fonts';
 
 const site = await getSiteContent();
+
+/**
+ * Descripción de la marca para buscadores. `siteDescription` es un campo libre
+ * del admin y hoy guarda un eslogan («Judas nunca muere»), que funciona en la
+ * portada pero no le dice a Google qué se vende ni dónde. Por eso la identidad
+ * y el respaldo de las metas usan, en este orden: la descripción de la portada
+ * escrita en admin → SEO, luego el texto de marca del código, y solo al final
+ * el campo libre.
+ */
+const homeSeo = await getPageSeo('/');
+const brandDescription = firstFilled(homeSeo.description, SITE_DESCRIPTION, site.siteDescription);
 
 // Analítica (opcional): sin el token no se inyecta nada.
 const cfToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN ?? process.env.PUBLIC_CF_ANALYTICS_TOKEN;
@@ -49,44 +63,111 @@ interface Props {
   ogImage?: string;
   /** true en páginas que no deben indexarse (404, etc.). */
   noindex?: boolean;
+  /**
+   * Canonical explícita. Solo hace falta cuando la URL visitada no es la
+   * versión que debe indexarse: /catalogo?categoria=gorras apunta a
+   * /catalogo/gorras para no competir consigo misma por el mismo contenido.
+   */
+  canonicalPath?: string;
+  /** og:type — 'product' en la ficha de producto, 'article' en editoriales. */
+  ogType?: string;
+  /**
+   * Miga de pan para buscadores: la página pasa los tramos y aquí se emite el
+   * BreadcrumbList. El primer nivel (Inicio) se añade solo.
+   */
+  breadcrumbs?: { name: string; path?: string }[];
+  /** JSON-LD propio de la página (Product, CollectionPage, FAQPage…). */
+  jsonLd?: unknown;
 }
 
 const {
   title,
-  description = site.siteDescription,
+  description = brandDescription,
   headerTheme = 'light',
-  ogImage = '/og.jpg',
+  ogImage = site.seoDefaultOgImage || '/og.jpg',
   noindex = false,
+  canonicalPath,
+  ogType = 'website',
+  breadcrumbs = [],
+  jsonLd,
 } = Astro.props;
 
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site);
 const ogImageUrl = new URL(ogImage, Astro.site);
 
-// Identidad de marca para buscadores: Organization + WebSite, en todas
-// las páginas. `sameAs` conecta la entidad con sus perfiles sociales.
+// Miga de pan: Inicio + los tramos de la página. El último no lleva `item`
+// porque es la página actual (así lo pide la referencia de Google).
+const breadcrumbLd =
+  breadcrumbs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [{ name: 'Inicio', path: '/' }, ...breadcrumbs].map((b, i, all) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: b.name,
+          ...(b.path && i < all.length - 1 ? { item: new URL(b.path, Astro.site).href } : {}),
+        })),
+      }
+    : null;
+
+const pageLd = [breadcrumbLd, ...(Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [])].filter(
+  Boolean,
+);
+
+// Identidad de marca para buscadores: Organization + WebSite, en todas las
+// páginas. La ciudad declarada es la real (Ibarra) y la cobertura es nacional
+// vía `areaServed`: eso es lo que permite competir en todo el Ecuador sin
+// afirmar una dirección que no existe. `sameAs` liga la entidad a sus perfiles.
+// La ciudad editable llega como 'IBARRA — ECUADOR'; el schema quiere solo el
+// nombre de la ciudad, así que se corta en el guion.
+const city = site.contactCity.split('—')[0]?.trim() ?? '';
+const socials = [
+  site.contactInstagram,
+  site.contactFacebook,
+  site.contactTiktok,
+].filter(Boolean);
+
 const identityLd = JSON.stringify([
   {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': new URL('/#organization', Astro.site).href,
     name: SITE_NAME,
+    alternateName: 'ENIGMA®',
     url: Astro.site?.href,
     logo: new URL('/og.jpg', Astro.site).href,
+    image: new URL('/og.jpg', Astro.site).href,
+    description: brandDescription,
     email: site.contactEmail,
-    sameAs: [site.contactInstagram],
+    ...(site.whatsappNumber ? { telephone: `+${site.whatsappNumber}` } : {}),
+    ...(site.orgFoundingYear ? { foundingDate: site.orgFoundingYear } : {}),
+    ...(socials.length ? { sameAs: socials } : {}),
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'Quito',
-      addressCountry: 'EC',
+      ...(city ? { addressLocality: city } : {}),
+      ...(site.contactRegion ? { addressRegion: site.contactRegion } : {}),
+      addressCountry: site.contactCountry || 'EC',
     },
+    areaServed: { '@type': 'Country', name: 'Ecuador' },
   },
   {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': new URL('/#website', Astro.site).href,
     name: SITE_NAME,
     url: Astro.site?.href,
-    inLanguage: 'es',
+    inLanguage: 'es-EC',
     publisher: { '@id': new URL('/#organization', Astro.site).href },
+    // Habilita el cuadro de búsqueda de sitio en los resultados de Google.
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: new URL('/catalogo?q={search_term_string}', Astro.site).href,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   },
 ]);
 ---
@@ -100,14 +181,38 @@ const identityLd = JSON.stringify([
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {
+      /* `max-image-preview:large` es lo que permite la foto grande en el
+         resultado de búsqueda y en Descubre; sin esto Google usa miniatura. */
+      noindex ? (
+        <meta name="robots" content="noindex, nofollow" />
+      ) : (
+        <meta
+          name="robots"
+          content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        />
+      )
+    }
     <link rel="canonical" href={canonical} />
+
+    {
+      /* Verificación de propiedad del sitio; se pega desde el admin → SEO. */
+      site.seoVerificationGoogle && (
+        <meta name="google-site-verification" content={site.seoVerificationGoogle} />
+      )
+    }
+    {site.seoVerificationBing && <meta name="msvalidate.01" content={site.seoVerificationBing} />}
+    {
+      site.seoVerificationMeta && (
+        <meta name="facebook-domain-verification" content={site.seoVerificationMeta} />
+      )
+    }
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="sitemap" href="/sitemap.xml" />
     <meta name="theme-color" content="#0A0A0A" />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -122,8 +227,31 @@ const identityLd = JSON.stringify([
     <meta name="twitter:image:alt" content={title} />
 
     <script is:inline type="application/ld+json" set:html={identityLd} />
+    {
+      /* JSON-LD de la página: miga de pan + lo que aporte cada ruta
+         (Product, CollectionPage, FAQPage…). */
+      pageLd.length > 0 && (
+        <script is:inline type="application/ld+json" set:html={JSON.stringify(pageLd)} />
+      )
+    }
 
     <link rel="preload" href={cormorantWoff2} as="font" type="font/woff2" crossorigin />
+    {
+      /* El hero de la portada es el elemento LCP y vive dentro de un componente
+         del <body>: sin este preload el navegador no lo descubre hasta parsear
+         medio documento. Solo aplica a la imagen subida al admin (Cloudinary);
+         el asset local de respaldo es un SVG ligero que no lo necesita. */
+      Astro.url.pathname === '/' && site.heroImageUrl && (
+        <link
+          rel="preload"
+          as="image"
+          href={cdnImage(site.heroImageUrl, 2000)}
+          imagesrcset={cdnSrcset(site.heroImageUrl)}
+          imagesizes="100vw"
+          fetchpriority="high"
+        />
+      )
+    }
     {
       (fontsHref || customFontsHref) && (
         <>

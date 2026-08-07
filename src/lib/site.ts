@@ -7,7 +7,20 @@ export const SITE_NAME = 'ENIGMA';
 
 /** Fallback estático; el valor editable viene de getSiteContent(). */
 export const SITE_DESCRIPTION =
-  'ENIGMA® — marca ecuatoriana de gorras. Series cortas y numeradas: lo que se agota no vuelve. Envíos a todo el Ecuador.';
+  'Marca ecuatoriana de gorras y ropa de lujo. Series cortas y numeradas: lo que se agota no vuelve. Envíos a todo el Ecuador.';
+
+/**
+ * Frases con las que la marca quiere competir en Google. No se pintan como
+ * meta keywords (Google las ignora desde 2009 y delatan sobreoptimización):
+ * son la guía para escribir títulos, descripciones y textos de categoría.
+ */
+export const TARGET_QUERIES = [
+  'marca de ropa ecuatoriana',
+  'marcas de gorras ecuatorianas',
+  'ropa de lujo Ecuador',
+  'gorras Ecuador',
+  'gorras Ibarra',
+] as const;
 
 /** Las categorías son editables desde el admin — ver src/lib/categories.ts. */
 export type Category = string;

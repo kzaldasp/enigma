@@ -4,6 +4,7 @@ import { campaignImage } from '../lib/images';
 import { waLink, formatPhone } from '../lib/site';
 import { getSiteContent } from '../lib/content';
 import { cdnImage } from '../lib/cdn';
+import { resolvePageSeo } from '../lib/seo';
 
 const site = await getSiteContent();
 // Imagen subida desde el admin (Contenido → Imagen del manifiesto) o el
@@ -11,12 +12,44 @@ const site = await getSiteContent();
 const atelier = site.marcaImageUrl ? null : campaignImage('marca');
 const WHATSAPP_NUMBER = site.whatsappNumber;
 const phone = formatPhone(WHATSAPP_NUMBER);
+
+// El título y la descripción que el cliente ya escribía en Contenido → «Página
+// La marca» siguen mandando; entran como defaults, así que una fila en
+// seo_pages para /marca los puede sobreescribir sin tocar el contenido.
+const seo = await resolvePageSeo('/marca', {
+  title: site.marcaSeoTitle || 'La marca: gorras y ropa de lujo hechas en Ibarra',
+  description:
+    site.marcaSeoDescription ||
+    'ENIGMA® es una marca de ropa ecuatoriana con estudio en Ibarra: gorras y ropa de lujo en series cortas, con envíos a todo el Ecuador.',
+});
+
+// El H1 es una pieza animada línea por línea. Si el admin escribe un H1 en
+// SEO, manda y se reparte igual por saltos de línea; si no, las líneas del
+// manifiesto.
+const headingLines = seo.heading ? seo.heading.split('\n').filter(Boolean) : site.marcaTitleLines;
+
+// AboutPage: esta página habla de la organización, no la sustituye. El
+// `mainEntity` apunta a la Organization que Base ya emite en todas las rutas.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  '@id': new URL('/marca', Astro.site).href,
+  url: new URL('/marca', Astro.site).href,
+  name: seo.title,
+  description: seo.description,
+  inLanguage: 'es-EC',
+  mainEntity: { '@id': new URL('/#organization', Astro.site).href },
+};
 ---
 
 <Base
-  title={`${site.marcaSeoTitle} — ENIGMA®`}
-  description={site.marcaSeoDescription}
+  title={seo.title}
+  description={seo.description}
+  ogImage={seo.ogImage || undefined}
+  noindex={seo.noindex}
   headerTheme="dark"
+  breadcrumbs={[{ name: 'La marca' }]}
+  jsonLd={jsonLd}
 >
   <!-- Manifiesto de marca (oscuro). Todo el texto viene del admin →
        Contenido del sitio → «Página La marca». -->
@@ -25,13 +58,23 @@ const phone = formatPhone(WHATSAPP_NUMBER);
       {site.marcaEyebrow && <p class="caps mb-8 text-stone" data-reveal>{site.marcaEyebrow}</p>}
       <h1 class="max-w-5xl font-display text-manifesto tracking-display" data-lines>
         {
-          site.marcaTitleLines.map((line) => (
+          headingLines.map((line) => (
             <span data-line>
               <span class="line-in">{line}</span>
             </span>
           ))
         }
       </h1>
+
+      {
+        /* Párrafo indexable del admin (SEO → intro). Visible y en el flujo
+           normal del texto: nada oculto. */
+        seo.intro && (
+          <p class="mt-8 max-w-md leading-relaxed text-bone/80" data-reveal>
+            {seo.intro}
+          </p>
+        )
+      }
 
       <div class="mt-20 grid grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-20">
         {

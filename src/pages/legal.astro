@@ -1,18 +1,48 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getSiteContent } from '../lib/content';
+import { resolvePageSeo } from '../lib/seo';
 
 const site = await getSiteContent();
 const paragraphs = (text: string) => text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+
+const seo = await resolvePageSeo('/legal', {
+  title: 'Términos y privacidad',
+  description:
+    'Términos de compra, cambios de talla y tratamiento de datos de ENIGMA®, marca de ropa ecuatoriana con envíos a todo el Ecuador.',
+  heading: 'Legal',
+});
+
+/**
+ * WebPage y no FAQPage: los textos legales son prosa corrida (términos de
+ * compra y privacidad), no pares pregunta/respuesta visibles. Marcar un FAQ
+ * que no está en la página es motivo de acción manual de Google. Si algún día
+ * el contenido se reescribe como preguntas visibles, aquí es donde cambia.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  '@id': new URL('/legal', Astro.site).href,
+  url: new URL('/legal', Astro.site).href,
+  name: seo.title,
+  description: seo.description,
+  inLanguage: 'es-EC',
+  publisher: { '@id': new URL('/#organization', Astro.site).href },
+};
 ---
 
 <Base
-  title="Términos y privacidad — ENIGMA®"
-  description="Términos de compra, política de cambios y tratamiento de datos de ENIGMA."
+  title={seo.title}
+  description={seo.description}
+  ogImage={seo.ogImage || undefined}
+  noindex={seo.noindex}
+  breadcrumbs={[{ name: 'Legal' }]}
+  jsonLd={jsonLd}
 >
   <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
     <div class="wrap max-w-3xl">
-      <h1 class="font-display text-section tracking-display">Legal</h1>
+      <h1 class="font-display text-section tracking-display">{seo.heading}</h1>
+      {seo.intro && <p class="mt-6 leading-relaxed text-stone">{seo.intro}</p>}
 
       <section id="terminos" class="mt-16 scroll-mt-28">
         <h2 class="caps border-t border-line pt-6">TÉRMINOS DE COMPRA</h2>

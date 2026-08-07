@@ -1,70 +1,201 @@
 ---
+/**
+ * Índice del catálogo completo. Atiende además dos parámetros:
+ *   ?categoria=<slug>  forma antigua del filtro (enlaces e historiales ya
+ *                      publicados); la versión indexable es /catalogo/<slug>
+ *                      y ahí apunta la canonical.
+ *   ?q=<texto>         búsqueda interna, la que declara el SearchAction del
+ *                      schema en Base.astro. Va noindex: los resultados de
+ *                      búsqueda interna son infinitos y no aportan al índice.
+ */
 import Base from '../layouts/Base.astro';
 import ProductCard from '../components/ProductCard.astro';
 import { getProducts } from '../lib/products';
 import { getCategories } from '../lib/categories';
+import { clamp, resolvePageSeo, TITLE_MAX, withBrand } from '../lib/seo';
 
-const products = await getProducts();
-const categories = await getCategories();
+const [all, categories] = await Promise.all([getProducts(), getCategories()]);
+
+const params = Astro.url.searchParams;
+const requested = (params.get('categoria') ?? '').trim().toLowerCase();
+const active = categories.find((c) => c.slug === requested) ?? null;
+// 80 caracteres: lo que cabe en el input. Evita que una URL inflada acabe
+// entera en el <title> y en el texto de la página.
+const query = (params.get('q') ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
+
+/** Sin tildes ni mayúsculas: «bomber» encuentra «Bómber», «gorra» «GORRA». */
+function fold(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+const terms = fold(query).split(' ').filter(Boolean);
+let products = active ? all.filter((p) => p.category === active.slug) : all;
+if (terms.length > 0) {
+  // Todas las palabras deben aparecer, en nombre o descripción.
+  products = products.filter((p) => {
+    const haystack = fold(`${p.title} ${p.description}`);
+    return terms.every((t) => haystack.includes(t));
+  });
+}
 const total = products.length;
 
-const itemListLd = JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'ItemList',
-  name: 'Catálogo ENIGMA',
-  numberOfItems: total,
-  itemListElement: products.map((p, i) => ({
-    '@type': 'ListItem',
-    position: i + 1,
-    name: p.title,
-    url: new URL(`/producto/${p.slug}`, Astro.site).href,
-  })),
+const seo = await resolvePageSeo('/catalogo', {
+  title: 'Catálogo — gorras y ropa de lujo Ecuador',
+  description:
+    'Todas las piezas de la colección actual de ENIGMA: gorras, ropa y accesorios de lujo. Series cortas, envíos a todo el Ecuador desde Ibarra.',
+  heading: 'Catálogo',
 });
+
+// La canonical es lo único que hace falta para que los filtros no compitan con
+// el índice: el contenido es el mismo y se consolida en la ruta limpia. La
+// búsqueda consolida en /catalogo y además va noindex.
+const canonicalPath = !query && active ? `/catalogo/${active.slug}` : '/catalogo';
+const noindex = query ? true : seo.noindex;
+// El título de la búsqueda no pasa por seo_pages: la fila de /catalogo describe
+// el índice, no un resultado concreto.
+const title = query ? clamp(withBrand(`Búsqueda: ${query}`), TITLE_MAX) : seo.title;
+
+const url = new URL(canonicalPath, Astro.site).href;
+const jsonLd = query
+  ? undefined
+  : [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        name: seo.heading,
+        description: seo.description,
+        inLanguage: 'es-EC',
+        isPartOf: { '@id': new URL('/#website', Astro.site).href },
+        mainEntity: { '@id': `${url}#lista` },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        '@id': `${url}#lista`,
+        name: 'Catálogo ENIGMA',
+        numberOfItems: total,
+        itemListElement: products.map((p, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: p.title,
+          url: new URL(`/producto/${p.slug}`, Astro.site).href,
+        })),
+      },
+    ];
 ---
 
 <Base
-  title="Catálogo — ENIGMA®"
-  description="Todas las piezas de la colección actual de ENIGMA: parte superior, parte inferior y accesorios. Series cortas, pago por transferencia bancaria."
+  title={title}
+  description={seo.description}
+  ogImage={seo.ogImage || undefined}
+  noindex={noindex}
+  canonicalPath={canonicalPath}
+  breadcrumbs={[{ name: 'Catálogo' }]}
+  jsonLd={jsonLd}
 >
-  <script is:inline type="application/ld+json" set:html={itemListLd} slot="head" />
-  <section class="bg-bone pt-36 pb-section text-ink md:pt-44" data-catalog>
+  <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
     <div class="wrap">
       <header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-reveal>
-        <h1 class="font-display text-section tracking-display">Catálogo</h1>
-        <p class="caps pb-2 text-stone" data-count aria-live="polite">
-          {total} PIEZAS
+        <h1 class="font-display text-section tracking-display">{seo.heading}</h1>
+        <p class="caps pb-2 text-stone">
+          {total} {total === 1 ? 'PIEZA' : 'PIEZAS'}
         </p>
       </header>
 
-      <!-- Filtros: texto plano, subrayado al activo — el enum manda -->
+      {
+        seo.intro && (
+          <p class="mt-6 max-w-2xl text-stone" data-reveal>
+            {seo.intro}
+          </p>
+        )
+      }
+
+      <!-- Filtros: enlaces reales a /catalogo/<slug>, no un filtro en cliente.
+           Así cada categoría es una URL que Google puede rastrear e indexar. -->
       <nav
         class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-line pt-6"
         aria-label="Filtrar por categoría"
         data-reveal
       >
-        <button type="button" class="u-link caps is-active min-h-11 text-left" data-filter="todo" aria-pressed="true">
+        <a
+          href="/catalogo"
+          class:list={['u-link', 'caps', 'min-h-11', 'text-left', { 'is-active': !active }]}
+          aria-current={active ? undefined : 'page'}
+        >
           TODO
-        </button>
+        </a>
         {
           categories.map((category) => (
-            <button
-              type="button"
-              class="u-link caps min-h-11 text-left"
-              data-filter={category.slug}
-              aria-pressed="false"
+            <a
+              href={`/catalogo/${category.slug}`}
+              class:list={[
+                'u-link',
+                'caps',
+                'min-h-11',
+                'text-left',
+                { 'is-active': active?.slug === category.slug },
+              ]}
+              aria-current={active?.slug === category.slug ? 'page' : undefined}
             >
               {category.label}
-            </button>
+            </a>
           ))
         }
       </nav>
 
-      <div
-        class="mt-14 grid grid-cols-2 gap-x-6 gap-y-14 md:gap-x-10 lg:grid-cols-3 lg:gap-x-12"
-        data-reveal-group
-      >
-        {products.map((product, i) => <ProductCard product={product} eager={i < 3} />)}
-      </div>
+      <!-- Búsqueda del sitio: es el destino del cuadro de búsqueda que Google
+           puede mostrar en sus resultados (SearchAction en Base.astro). -->
+      <form role="search" action="/catalogo" method="get" class="mt-8 flex max-w-md items-end gap-6">
+        <div class="flex-1">
+          <label for="catalogo-q" class="caps text-stone">Buscar pieza</label>
+          <input
+            id="catalogo-q"
+            type="search"
+            name="q"
+            value={query}
+            placeholder="gorra, bomber, negro…"
+            class="field-line mt-3 text-body"
+          />
+        </div>
+        <button type="submit" class="u-link caps min-h-11 shrink-0">BUSCAR</button>
+      </form>
+
+      {
+        query && (
+          <p class="caps mt-8 text-stone" role="status">
+            {total} {total === 1 ? 'RESULTADO' : 'RESULTADOS'} PARA «{query}» —{' '}
+            <a href="/catalogo" class="u-link">
+              VER TODO
+            </a>
+          </p>
+        )
+      }
+
+      {
+        total > 0 ? (
+          <div
+            class="mt-14 grid grid-cols-2 gap-x-6 gap-y-14 md:gap-x-10 lg:grid-cols-3 lg:gap-x-12"
+            data-reveal-group
+          >
+            {products.map((product, i) => (
+              <ProductCard product={product} eager={i < 3} />
+            ))}
+          </div>
+        ) : (
+          <p class="mt-14 max-w-md text-stone" data-reveal>
+            Ninguna pieza coincide con esa búsqueda. Prueba con otra palabra o mira{' '}
+            <a href="/catalogo" class="u-link">
+              todo el catálogo
+            </a>
+            .
+          </p>
+        )
+      }
     </div>
   </section>
 </Base>

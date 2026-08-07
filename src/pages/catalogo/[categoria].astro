@@ -1,0 +1,165 @@
+---
+/**
+ * Ruta indexable por categoría. Es la versión canónica del filtro del
+ * catálogo: /catalogo?categoria=gorras existe por compatibilidad, pero lo
+ * que Google rastrea e indexa es /catalogo/gorras, con su H1, su párrafo
+ * propio y su ItemList.
+ */
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { getProducts } from '../../lib/products';
+import { getCategories, getCategory } from '../../lib/categories';
+import { firstFilled, resolvePageSeo } from '../../lib/seo';
+
+const slug = (Astro.params.categoria ?? '').trim().toLowerCase();
+const category = await getCategory(slug);
+
+// Slug inexistente: 404 real. Redirigir a /404 (lo que hace hoy la ficha de
+// producto) le dice a Google que la URL se movió a otra parte, y estas nunca
+// existieron: lo correcto es responder 404 en la propia URL pedida.
+if (!category) Astro.response.status = 404;
+
+const [categories, all] = await Promise.all([getCategories(), getProducts()]);
+const products = category ? all.filter((p) => p.category === category.slug) : [];
+const total = products.length;
+
+/**
+ * Los labels se guardan en mayúsculas ('PARTE SUPERIOR') porque los menús los
+ * pintan con `.caps`. En un H1 en tipografía display eso grita, así que aquí
+ * se baja a mayúscula inicial; un label ya escrito con mayúsculas y minúsculas
+ * se respeta tal cual.
+ */
+function pretty(label: string): string {
+  if (label !== label.toUpperCase()) return label;
+  return label.charAt(0) + label.slice(1).toLowerCase();
+}
+
+const label = category ? pretty(category.label) : '';
+const path = `/catalogo/${slug}`;
+
+// Prioridad de título: seo_pages (dentro de resolvePageSeo) → seo_title de la
+// categoría → default con las frases objetivo de la marca. El default repite
+// la palabra en la categoría de gorras; el admin tiene el campo para afinarlo.
+const seo = category
+  ? await resolvePageSeo(path, {
+      title: firstFilled(category.seoTitle, `${label} — gorras y ropa de lujo Ecuador`),
+      description: firstFilled(
+        category.seoDescription,
+        `${label} de ENIGMA®, marca ecuatoriana de gorras y ropa de lujo con sede en Ibarra. Series cortas y numeradas, envíos a todo el Ecuador.`,
+      ),
+      // El H1 NO hereda `seoTitle`: ese texto está escrito para la pestaña del
+      // navegador y el resultado de búsqueda («Gorras ecuatorianas | ENIGMA®
+      // gorras Ecuador»), y puesto como encabezado de la página se lee como
+      // relleno. El encabezado es el nombre de la categoría, salvo que el
+      // admin escriba uno propio en el campo H1 de SEO → Por página.
+      heading: label,
+      intro: category.seoIntro,
+    })
+  : null;
+
+const url = new URL(path, Astro.site).href;
+const jsonLd =
+  category && seo
+    ? [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          '@id': url,
+          url,
+          name: seo.heading,
+          description: seo.description,
+          inLanguage: 'es-EC',
+          isPartOf: { '@id': new URL('/#website', Astro.site).href },
+          mainEntity: { '@id': `${url}#lista` },
+        },
+        {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          '@id': `${url}#lista`,
+          name: `${label} — ENIGMA®`,
+          numberOfItems: total,
+          itemListElement: products.map((p, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: p.title,
+            url: new URL(`/producto/${p.slug}`, Astro.site).href,
+          })),
+        },
+      ]
+    : undefined;
+---
+
+{
+  category && seo ? (
+    <Base
+      title={seo.title}
+      description={seo.description}
+      ogImage={seo.ogImage || undefined}
+      noindex={seo.noindex}
+      breadcrumbs={[{ name: 'Catálogo', path: '/catalogo' }, { name: label }]}
+      jsonLd={jsonLd}
+    >
+      <section class="bg-bone pt-36 pb-section text-ink md:pt-44">
+        <div class="wrap">
+          <header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-reveal>
+            <h1 class="font-display text-section tracking-display">{seo.heading}</h1>
+            <p class="caps pb-2 text-stone">
+              {total} {total === 1 ? 'PIEZA' : 'PIEZAS'}
+            </p>
+          </header>
+
+          {/* Párrafo de categoría: visible bajo el H1, nunca oculto. */}
+          {seo.intro && (
+            <p class="mt-6 max-w-2xl text-stone" data-reveal>
+              {seo.intro}
+            </p>
+          )}
+
+          {/* Mismo grupo de filtros que /catalogo: enlaces reales, rastreables. */}
+          <nav
+            class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-line pt-6"
+            aria-label="Filtrar por categoría"
+            data-reveal
+          >
+            <a href="/catalogo" class="u-link caps min-h-11 text-left">TODO</a>
+            {categories.map((c) => (
+              <a
+                href={`/catalogo/${c.slug}`}
+                class:list={['u-link', 'caps', 'min-h-11', 'text-left', { 'is-active': c.slug === category.slug }]}
+                aria-current={c.slug === category.slug ? 'page' : undefined}
+              >
+                {c.label}
+              </a>
+            ))}
+          </nav>
+
+          {total > 0 ? (
+            <div
+              class="mt-14 grid grid-cols-2 gap-x-6 gap-y-14 md:gap-x-10 lg:grid-cols-3 lg:gap-x-12"
+              data-reveal-group
+            >
+              {products.map((product, i) => (
+                <ProductCard product={product} eager={i < 3} />
+              ))}
+            </div>
+          ) : (
+            <p class="mt-14 max-w-md text-stone" data-reveal>
+              Esta categoría está entre colecciones. Mira el resto del{' '}
+              <a href="/catalogo" class="u-link">catálogo</a>.
+            </p>
+          )}
+        </div>
+      </section>
+    </Base>
+  ) : (
+    <Base title="Categoría no encontrada — ENIGMA®" description="Esta categoría no existe." noindex>
+      <section class="flex min-h-[70svh] items-center bg-bone pt-24 text-ink">
+        <div class="wrap">
+          <p class="caps text-stone">ERROR 404</p>
+          <h1 class="mt-6 font-display text-section tracking-display">Esta categoría no existe.</h1>
+          <a href="/catalogo" class="btn btn-ink mt-12">VER EL CATÁLOGO</a>
+        </div>
+      </section>
+    </Base>
+  )
+}
