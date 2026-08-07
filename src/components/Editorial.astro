@@ -1,28 +1,15 @@
 ---
-import { campaignImage } from '../lib/images';
-
-const editorial = campaignImage('editorial');
 const phrase = 'No necesitas explicarlo. Eso es Enigma.';
 const words = phrase.split(' ');
 ---
 
+<!-- Sin imagen de fondo: el marcador era una silueta dibujada que no aporta
+     nada. La frase se sostiene sola sobre el negro. Si más adelante hay
+     fotografía real de campaña, va aquí como <img data-parallax> dentro de un
+     .parallax-frame, con su overlay bg-ink/30 para que el texto respire. -->
 <section class="relative bg-ink text-bone" aria-label="Editorial de campaña">
-  <div class="parallax-frame relative h-[88svh] min-h-[min(30rem,100svh)]">
-    <!-- `<img>` directo al asset, no <Image>: en SSR el componente de Astro
-         sirve las imágenes locales por /_image, que en Vercel responde 404
-         (la función no puede pedirse a sí misma por HTTP) y Safari dibuja su
-         icono de imagen rota. Estos assets ya salen hasheados y cacheados. -->
-    <img
-      src={editorial.src}
-      width={editorial.width}
-      height={editorial.height}
-      alt="Editorial ENIGMA: figura de pie en un espacio vacío en penumbra"
-      data-parallax
-      loading="lazy"
-    />
-    <div class="absolute inset-0 bg-ink/30" aria-hidden="true"></div>
-
-    <div class="wrap absolute inset-0 flex flex-col justify-center">
+  <div class="relative flex h-[88svh] min-h-[min(30rem,100svh)] flex-col justify-center">
+    <div class="wrap">
       <p
         class="max-w-[16ch] font-display text-editorial tracking-display italic"
         data-words
