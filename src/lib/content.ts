@@ -16,7 +16,6 @@ export type SiteContent = {
   contactCity: string;
   whatsappNumber: string;
   shippingText: string;
-  returnsText: string;
   bankDetails: string;
   /** Tipografías (Contenido → Tipografía). Vacío en fontHero = heredar. */
   fontDisplay: string;
@@ -86,8 +85,6 @@ const DEFAULTS: Record<string, string> = {
   whatsapp_number: '593980324621',
   shipping_text:
     'Despacho en 24–48 h dentro de Ecuador. Quito y Guayaquil: 1–2 días hábiles; resto del país: 2–4. Envío internacional bajo cotización por WhatsApp.',
-  returns_text:
-    'Tienes 15 días desde la entrega para cambios de talla, con la pieza sin uso y en su empaque. Las piezas agotadas no se reservan.',
   bank_details: '',
   font_display: 'Cormorant Garamond',
   font_body: 'Inter',
@@ -110,7 +107,7 @@ const DEFAULTS: Record<string, string> = {
   shipping_cost: '0',
   shipping_free_from: '',
   legal_terms:
-    'Las compras se concretan desde la bolsa y se pagan por transferencia bancaria: al confirmar el pedido recibes los datos de la cuenta y validamos tu comprobante antes de despachar. Los precios están en dólares estadounidenses e incluyen impuestos.\n\nCambios de talla dentro de los 15 días posteriores a la entrega, con la pieza sin uso y en su empaque original. Las series son limitadas: no garantizamos reposición.',
+    'Las compras se concretan desde la bolsa y se pagan por transferencia bancaria: al confirmar el pedido recibes los datos de la cuenta y validamos tu comprobante antes de despachar. Los precios están en dólares estadounidenses e incluyen impuestos.',
   legal_privacy:
     'Usamos tu correo únicamente para avisarte de nuevas series si te suscribes, y tu número solo para gestionar tu pedido. No compartimos datos con terceros ni usamos rastreadores de publicidad.\n\nPuedes pedir la eliminación de tus datos en cualquier momento escribiendo al correo del estudio.',
 };
@@ -138,7 +135,6 @@ export async function getSiteContent(): Promise<SiteContent> {
       contactCity: map.contact_city,
       whatsappNumber: map.whatsapp_number,
       shippingText: map.shipping_text,
-      returnsText: map.returns_text,
       bankDetails: map.bank_details,
       fontDisplay: map.font_display,
       fontBody: map.font_body,

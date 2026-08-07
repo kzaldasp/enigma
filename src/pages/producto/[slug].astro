@@ -70,17 +70,6 @@ async function buildFicha(p: Product) {
         : site.shippingText,
   };
 
-  // El texto de cambios habla de 15 días para cambio de talla; se declara
-  // exactamente eso. `returnFees` y `returnMethod` quedan fuera a propósito:
-  // la política no los define y no se inventan.
-  const returnPolicy = {
-    '@type': 'MerchantReturnPolicy',
-    applicableCountry: country,
-    returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
-    merchantReturnDays: 15,
-    description: site.returnsText,
-  };
-
   /**
    * Una sola `Offer` para toda la pieza, no una por talla ni `AggregateOffer`:
    * todas las tallas comparten precio y no existe URL propia por talla, así
@@ -100,7 +89,6 @@ async function buildFicha(p: Product) {
     acceptedPaymentMethod: 'http://purl.org/goodrelations/v1#ByBankTransferInAdvance',
     seller: { '@id': new URL('/#organization', Astro.site).href },
     shippingDetails,
-    hasMerchantReturnPolicy: returnPolicy,
   };
 
   const jsonLd = {
@@ -310,12 +298,6 @@ if (!ficha) {
                   <summary class="caps">ENVÍOS</summary>
                   <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
                     {ficha.site.shippingText}
-                  </p>
-                </details>
-                <details class="acc">
-                  <summary class="caps">CAMBIOS</summary>
-                  <p class="max-w-md pb-5 text-sm leading-relaxed text-stone">
-                    {ficha.site.returnsText}
                   </p>
                 </details>
               </div>
