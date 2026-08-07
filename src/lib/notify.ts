@@ -265,6 +265,227 @@ export async function sendOrderEmail(params: {
   await sendEmail(to, `ENIGMA — Tu pedido ${code}`, text, html);
 }
 
+/* ------------------------------------------------------------------
+   Aviso interno de pedido nuevo.
+   Mismo lenguaje visual que el correo del cliente, pero pensado para
+   despachar: lo primero que se ve es el total y el botón que abre el
+   pedido en el admin; debajo, todo lo que hace falta para preparar el
+   envío sin abrir nada más.
+------------------------------------------------------------------- */
+export type AdminOrderEmail = {
+  code: string;
+  total: number;
+  subtotal: number;
+  shipping: number;
+  discount: number;
+  couponCode: string | null;
+  items: { name: string; qty: number; amount: number }[];
+  customer: { name: string; phone: string; email: string; cedula: string };
+  delivery: { address: string; reference: string; city: string; province: string };
+  notes: string;
+  /** Vacío si no hay ADMIN_URL configurada: entonces no se pinta el botón. */
+  adminUrl: string;
+  trackUrl: string;
+};
+
+export async function sendNewOrderAdminEmail(order: AdminOrderEmail): Promise<void> {
+  const to = env('NOTIFY_EMAIL');
+  if (!to) return;
+
+  const {
+    code, total, subtotal, shipping, discount, couponCode, items,
+    customer, delivery, notes, adminUrl, trackUrl,
+  } = order;
+
+  const fullAddress = `${delivery.address} · ${delivery.reference} — ${delivery.city}, ${delivery.province}`;
+  const units = items.reduce((n, it) => n + it.qty, 0);
+
+  // ── Texto plano (fallback y notificaciones del móvil) ───────────
+  const text = [
+    `NUEVO PEDIDO ${code} — ${money(total)}`,
+    '',
+    ...items.map((it) => `· ${it.name} x${it.qty} — ${money(it.amount)}`),
+    '',
+    `Subtotal: ${money(subtotal)}`,
+    `Envío: ${shipping > 0 ? money(shipping) : 'gratis'}`,
+    ...(discount > 0 ? [`Descuento${couponCode ? ` (${couponCode})` : ''}: -${money(discount)}`] : []),
+    `TOTAL: ${money(total)}`,
+    '',
+    '— CLIENTE —',
+    customer.name,
+    `WhatsApp: ${customer.phone}`,
+    `Correo: ${customer.email}`,
+    `Cédula: ${customer.cedula}`,
+    '',
+    '— ENTREGA —',
+    fullAddress,
+    ...(notes ? ['', `Nota del cliente: ${notes}`] : []),
+    '',
+    'Estado: pendiente de comprobante.',
+    ...(adminUrl ? ['', `Abrir en el admin: ${adminUrl}`] : ['', 'Revísalo en el admin → Pedidos web']),
+    `Página del cliente: ${trackUrl}`,
+  ].join('\n');
+
+  // ── HTML ────────────────────────────────────────────────────────
+  const itemRows = items
+    .map(
+      (it) => `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid ${LINE};font-family:${SANS};font-size:13px;color:${INK};">
+          ${esc(it.name)}<span style="color:${STONE};"> &times;${it.qty}</span>
+        </td>
+        <td align="right" style="padding:12px 0;border-bottom:1px solid ${LINE};font-family:${SANS};font-size:13px;color:${INK};white-space:nowrap;">
+          ${money(it.amount)}
+        </td>
+      </tr>`,
+    )
+    .join('');
+
+  const totalRow = (t: string, v: string, strong = false) => `
+      <tr>
+        <td style="padding:6px 0;font-family:${SANS};font-size:${strong ? '13px' : '12px'};letter-spacing:.1em;text-transform:uppercase;color:${strong ? INK : STONE};">${esc(t)}</td>
+        <td align="right" style="padding:6px 0;font-family:${SANS};font-size:${strong ? '15px' : '12px'};color:${strong ? INK : STONE};white-space:nowrap;">${esc(v)}</td>
+      </tr>`;
+
+  /** Fila etiqueta / valor de las fichas de cliente y entrega. */
+  const dataRow = (t: string, valueHtml: string) => `
+      <tr>
+        <td style="padding:9px 0;border-bottom:1px solid ${LINE};font-family:${SANS};font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${STONE};white-space:nowrap;vertical-align:top;">${esc(t)}</td>
+        <td align="right" style="padding:9px 0 9px 16px;border-bottom:1px solid ${LINE};font-family:${SANS};font-size:13px;line-height:1.6;color:${INK};">${valueHtml}</td>
+      </tr>`;
+
+  const waHref = `https://wa.me/${customer.phone.replace(/\D/g, '')}`;
+  const linkStyle = `color:${INK};text-decoration:underline;`;
+
+  const html = `<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nuevo pedido ${esc(code)}</title></head>
+<body style="margin:0;padding:0;background:${BONE};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    ${esc(customer.name)} · ${units} ${units === 1 ? 'pieza' : 'piezas'} · ${money(total)} — pendiente de comprobante.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BONE};">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+        <!-- Cabecera: queda claro que es un aviso interno -->
+        <tr>
+          <td style="background:${INK};padding:22px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="font-family:${SANS};font-size:13px;letter-spacing:.36em;text-transform:uppercase;color:${BONE};">ENIGMA</td>
+                <td align="right" style="font-family:${SANS};font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:${STONE};">Aviso interno</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Titular: pedido y total, lo que se lee de un vistazo -->
+        <tr>
+          <td style="padding:34px 32px 0;">
+            ${label(`Pedido ${code} · ${units} ${units === 1 ? 'pieza' : 'piezas'}`)}
+            <h1 style="margin:12px 0 0;font-family:${SERIF};font-size:34px;line-height:1.1;font-weight:400;color:${INK};">
+              Nuevo pedido — ${money(total)}
+            </h1>
+            <p style="margin:12px 0 0;font-family:${SANS};font-size:13px;line-height:1.7;color:${STONE};">
+              De ${esc(customer.name)}. Queda pendiente de comprobante: cuando el cliente lo suba
+              llega otro aviso para validar el pago.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Botón al admin, arriba: es la acción de este correo -->
+        ${
+          adminUrl
+            ? `<tr>
+          <td style="padding:26px 32px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr><td align="center" style="background:${INK};">
+                <a href="${esc(adminUrl)}" style="display:block;padding:16px 24px;font-family:${SANS};font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:${BONE};text-decoration:none;">
+                  Ver el pedido ${esc(code)} en el admin
+                </a>
+              </td></tr>
+            </table>
+          </td>
+        </tr>`
+            : `<tr>
+          <td style="padding:26px 32px 0;">
+            <p style="margin:0;font-family:${SANS};font-size:12px;line-height:1.7;color:${STONE};">
+              Revísalo en el admin &rarr; Pedidos web.
+            </p>
+          </td>
+        </tr>`
+        }
+
+        <!-- Piezas y totales -->
+        <tr>
+          <td style="padding:32px 32px 0;">
+            ${label('Piezas')}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;border-top:1px solid ${LINE};">
+              ${itemRows}
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;">
+              ${totalRow('Subtotal', money(subtotal))}
+              ${totalRow('Envío', shipping > 0 ? money(shipping) : 'Gratis')}
+              ${discount > 0 ? totalRow(couponCode ? `Descuento (${couponCode})` : 'Descuento', `-${money(discount)}`) : ''}
+              <tr><td colspan="2" style="padding-top:10px;border-top:1px solid ${LINE};"></td></tr>
+              ${totalRow('Total del pedido', money(total), true)}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Cliente -->
+        <tr>
+          <td style="padding:32px 32px 0;">
+            ${label('Cliente')}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;border-top:1px solid ${LINE};">
+              ${dataRow('Nombre', esc(customer.name))}
+              ${dataRow('WhatsApp', `<a href="${esc(waHref)}" style="${linkStyle}">${esc(customer.phone)}</a>`)}
+              ${dataRow('Correo', `<a href="mailto:${esc(customer.email)}" style="${linkStyle}">${esc(customer.email)}</a>`)}
+              ${dataRow('Cédula', esc(customer.cedula))}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Entrega -->
+        <tr>
+          <td style="padding:32px 32px 0;">
+            ${label('Entrega')}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;border-top:1px solid ${LINE};">
+              ${dataRow('Dirección', esc(delivery.address))}
+              ${dataRow('Referencia', esc(delivery.reference))}
+              ${dataRow('Ciudad', esc(delivery.city))}
+              ${dataRow('Provincia', esc(delivery.province))}
+              ${notes ? dataRow('Nota', esc(notes)) : ''}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Pie: enlace secundario a la página del cliente -->
+        <tr>
+          <td style="padding:32px 32px 40px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${LINE};">
+              <tr><td style="padding-top:22px;text-align:center;">
+                <p style="margin:0;font-family:${SANS};font-size:11px;line-height:1.9;letter-spacing:.06em;color:${STONE};">
+                  Página que ve el cliente:<br>
+                  <a href="${esc(trackUrl)}" style="color:${STONE};text-decoration:underline;">${esc(trackUrl)}</a>
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await sendEmail(to, `Nuevo pedido ${code} — ${money(total)} · ${customer.name}`, text, html);
+}
+
 /**
  * Acuse inmediato al subir el comprobante. La página ya se lo confirma en
  * pantalla, pero esto es lo que le queda si cierra la pestaña: constancia

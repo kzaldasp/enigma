@@ -3,7 +3,7 @@ import { db } from '../../lib/db';
 import { uploadReceipt } from '../../lib/upload';
 import { notifyOwner, sendReceiptEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
-import { siteUrl } from '../../lib/site';
+import { siteUrl, adminUrl } from '../../lib/site';
 
 export const prerender = false;
 
@@ -66,10 +66,14 @@ export const POST: APIRoute = async ({ request }) => {
       'write',
     );
 
+    const adminLink = adminUrl(`/pedidos/${Number(order.id)}`);
     await notifyOwner(`Comprobante subido — pedido ${code}`, [
       `El cliente subió su comprobante de transferencia.`,
-      `Pedido: ${code}`,
-      `Revísalo y valida el pago en el admin → Pedidos web`,
+      `Pedido: ${code} · ${String(order.customer_name)} · $${Number(order.total).toFixed(2)}`,
+      '',
+      adminLink
+        ? `Revísalo y valida el pago aquí: ${adminLink}`
+        : 'Revísalo y valida el pago en el admin → Pedidos web',
     ]);
 
     // Acuse escrito al cliente: la página ya se lo confirma en pantalla, pero

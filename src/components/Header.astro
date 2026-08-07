@@ -1,5 +1,5 @@
 ---
-import { NAV } from '../lib/site';
+import { navItems } from '../lib/site';
 import { getSiteContent } from '../lib/content';
 
 interface Props {
@@ -11,12 +11,10 @@ const { theme = 'light' } = Astro.props;
 const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
 const isCurrent = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
-const { contactInstagram, contactCity } = await getSiteContent();
+const { contactInstagram, contactCity, lookbookEnabled } = await getSiteContent();
 
-const menuItems = [
-  ...NAV.map((item) => ({ ...item })),
-  { label: 'CONTACTO', href: '/marca' },
-];
+const nav = navItems(lookbookEnabled);
+const menuItems = [...nav, { label: 'CONTACTO', href: '/marca' }];
 ---
 
 <!-- La navegación horizontal aparece en `lg`, no en `md`: a 768px los cuatro
@@ -28,7 +26,7 @@ const menuItems = [
     <!-- Izquierda: navegación de escritorio / botón de menú -->
     <nav aria-label="Principal" class="hidden flex-1 items-center gap-7 lg:flex">
       {
-        NAV.map((item) => (
+        nav.map((item) => (
           <a
             href={item.href}
             class="u-link caps tap"

@@ -17,6 +17,17 @@ export function waLink(number: string, message: string): string {
 }
 
 /**
+ * Número guardado en formato internacional sin "+" → legible.
+ * 593980324621 → +593 98 032 4621. Si no calza con ese largo, se muestra
+ * tal cual con el "+" delante: mejor un número crudo que uno mal cortado.
+ */
+export function formatPhone(number: string): string {
+  const digits = number.replace(/\D/g, '');
+  if (digits.length !== 12) return digits ? `+${digits}` : '';
+  return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+}
+
+/**
  * URL pública absoluta. No se puede derivar de `request.url`: dentro de una
  * función serverless de Vercel el host es `localhost`, y ese link acabaría
  * en los correos y WhatsApp del cliente. Orden de preferencia:
@@ -36,12 +47,36 @@ export function siteUrl(path: string): string {
   return new URL(path, base.startsWith('http') ? base : `https://${base}`).toString();
 }
 
+/**
+ * URL del panel de administración (otro despliegue). Solo se usa en los avisos
+ * internos, para poder abrir el pedido con un clic. Sin ADMIN_URL configurada
+ * devuelve '' y el correo se queda sin botón, sin romperse.
+ */
+export function adminUrl(path: string): string {
+  const env = (k: string): string | undefined =>
+    (import.meta.env?.[k] as string | undefined) ?? process.env[k];
+
+  const base = env('ADMIN_URL');
+  if (!base) return '';
+  return new URL(path, base.startsWith('http') ? base : `https://${base}`).toString();
+}
+
 export const NAV = [
   { label: 'INICIO', href: '/' },
   { label: 'CATÁLOGO', href: '/catalogo' },
   { label: 'LOOKBOOK', href: '/lookbook' },
   { label: 'ARCHIVO', href: '/archivo' },
 ] as const;
+
+/**
+ * Navegación real: el lookbook se puede apagar desde el admin (Campañas),
+ * y entonces no debe aparecer en ningún menú.
+ */
+export function navItems(lookbookEnabled: boolean): { label: string; href: string }[] {
+  return NAV.filter((item) => lookbookEnabled || item.href !== '/lookbook').map((item) => ({
+    ...item,
+  }));
+}
 
 export function formatPrice(price: number): string {
   return `$${price} USD`;

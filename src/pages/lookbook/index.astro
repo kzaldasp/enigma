@@ -4,13 +4,23 @@ import Base from '../../layouts/Base.astro';
 import CampaignEditorial from '../../components/CampaignEditorial.astro';
 import { campaignImage } from '../../lib/images';
 import { getCampaigns } from '../../lib/campaigns';
+import { getSiteContent } from '../../lib/content';
 import { cdnImage, cdnVideo } from '../../lib/cdn';
 
 /**
  * Lookbook: muestra la campaña publicada más reciente (admin → Campañas).
  * Las campañas anteriores quedan enlazadas abajo como archivo editorial.
  * Sin campañas publicadas, cae al editorial estático original.
+ *
+ * Se puede apagar por completo desde el admin (Campañas → «Lookbook en la
+ * tienda»): entonces la sección desaparece del menú y esta ruta manda al
+ * catálogo, para que ningún enlace viejo acabe en un 404.
  */
+const { lookbookEnabled } = await getSiteContent();
+if (!lookbookEnabled) {
+  return Astro.redirect('/catalogo', 307);
+}
+
 const campaigns = await getCampaigns();
 const current = campaigns.find((c) => c.items.length > 0);
 const others = current ? campaigns.filter((c) => c.id !== current.id && c.items.length > 0) : [];

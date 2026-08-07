@@ -50,6 +50,11 @@ export function clearCart(): void {
   save([]);
 }
 
+/** Unidades de una variante concreta (pieza + talle) ya en la bolsa. */
+export function cartQty(slug: string, size: string | null): number {
+  return getCart().find((i) => i.slug === slug && i.size === size)?.qty ?? 0;
+}
+
 export function cartCount(): number {
   return getCart().reduce((n, i) => n + i.qty, 0);
 }

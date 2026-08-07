@@ -6,8 +6,9 @@ GSAP/ScrollTrigger + Lenis, con View Transitions.
 El catálogo y los textos viven en **Turso** y se administran desde el proyecto
 hermano **`../enigma-admin`** (Next.js). La compra es por transferencia bancaria:
 el cliente arma su bolsa, confirma el pedido, recibe los datos bancarios y sube
-su comprobante; el equipo lo valida desde el admin. (También sigue la compra
-directa por WhatsApp.)
+su comprobante; el equipo lo valida desde el admin. Es el único camino de compra:
+WhatsApp queda solo como canal de contacto y para el aviso «avísenme cuando vuelva»
+de las piezas agotadas.
 
 ## Arranque
 
@@ -27,10 +28,11 @@ Ambos comparten la misma base; los cambios del admin se ven en máx. 60 s (cach�
 
 | Qué | Dónde |
 | --- | --- |
-| WhatsApp, contacto, textos, banco | Admin → **Contenido del sitio** |
+| WhatsApp, contacto, textos, banco, imágenes del hero y de la marca | Admin → **Contenido del sitio** |
 | Catálogo (productos, precios, fotos, stock) | Admin → **Productos** |
+| Mostrar u ocultar el lookbook completo | Admin → **Campañas** → «Lookbook en la tienda» |
 | Dominio real | `astro.config.mjs` → `site` y `public/robots.txt` |
-| Variables de producción | Vercel → `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `CLOUDINARY_URL` |
+| Variables de producción | Vercel → `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `CLOUDINARY_URL`, `ADMIN_URL` |
 
 ## Estructura
 

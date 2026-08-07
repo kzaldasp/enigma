@@ -26,6 +26,10 @@ export type SiteContent = {
   fontCustomUrl: string;
   /** Imagen del hero subida desde el admin; vacío = asset local. */
   heroImageUrl: string;
+  /** Imagen del manifiesto de /marca subida desde el admin; vacío = asset local. */
+  marcaImageUrl: string;
+  /** Lookbook visible en la tienda (admin → Campañas). */
+  lookbookEnabled: boolean;
   /** Costo de envío plano en USD; 0 = gratis. */
   shippingCost: number;
   /** Subtotal desde el cual el envío es gratis; 0 = nunca. */
@@ -45,7 +49,7 @@ const DEFAULTS: Record<string, string> = {
   contact_email: 'contacto@enigma593.com',
   contact_instagram: 'https://instagram.com/enigma',
   contact_city: 'QUITO — ECUADOR',
-  whatsapp_number: '',
+  whatsapp_number: '593980324621',
   shipping_text:
     'Despacho en 24–48 h dentro de Ecuador. Quito y Guayaquil: 1–2 días hábiles; resto del país: 2–4. Envío internacional bajo cotización por WhatsApp.',
   returns_text:
@@ -56,10 +60,13 @@ const DEFAULTS: Record<string, string> = {
   font_hero: '',
   font_custom_url: '',
   hero_image_url: '',
+  marca_image_url: '',
+  // '0' = el lookbook desaparece del menú y /lookbook redirige al catálogo.
+  lookbook_enabled: '1',
   shipping_cost: '0',
   shipping_free_from: '',
   legal_terms:
-    'Las compras se concretan por transferencia bancaria o WhatsApp: confirmamos disponibilidad, talla y dirección antes del pago. Los precios están en dólares estadounidenses e incluyen impuestos.\n\nCambios de talla dentro de los 15 días posteriores a la entrega, con la pieza sin uso y en su empaque original. Las series son limitadas: no garantizamos reposición.',
+    'Las compras se concretan desde la bolsa y se pagan por transferencia bancaria: al confirmar el pedido recibes los datos de la cuenta y validamos tu comprobante antes de despachar. Los precios están en dólares estadounidenses e incluyen impuestos.\n\nCambios de talla dentro de los 15 días posteriores a la entrega, con la pieza sin uso y en su empaque original. Las series son limitadas: no garantizamos reposición.',
   legal_privacy:
     'Usamos tu correo únicamente para avisarte de nuevas series si te suscribes, y tu número solo para gestionar tu pedido. No compartimos datos con terceros ni usamos rastreadores de publicidad.\n\nPuedes pedir la eliminación de tus datos en cualquier momento escribiendo al correo del estudio.',
 };
@@ -94,6 +101,8 @@ export async function getSiteContent(): Promise<SiteContent> {
       fontHero: map.font_hero,
       fontCustomUrl: map.font_custom_url,
       heroImageUrl: map.hero_image_url,
+      marcaImageUrl: map.marca_image_url,
+      lookbookEnabled: map.lookbook_enabled !== '0',
       shippingCost: Number(map.shipping_cost) || 0,
       shippingFreeFrom: Number(map.shipping_free_from) || 0,
       legalTerms: map.legal_terms,

@@ -19,7 +19,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { getCart, addToCart, setQty, clearCart, cartCount, cartTotal } from './cart';
+import { getCart, addToCart, setQty, clearCart, cartCount, cartQty, cartTotal } from './cart';
 import { computeTotals, type CouponInfo } from '../lib/totals';
 import { cdnImage } from '../lib/cdn';
 
@@ -333,7 +333,9 @@ function initCatalog(signal: AbortSignal) {
 }
 
 /* ------------------------------------------------------------------
-   Producto: talle elegido → mensaje de WhatsApp precargado
+   Producto: la compra va siempre por la bolsa. El único WhatsApp que
+   queda en la ficha es el aviso «avísenme cuando vuelva» de las piezas
+   agotadas, con el talle elegido precargado en el mensaje.
 ------------------------------------------------------------------- */
 /** ViewContent: el visitante está viendo una ficha de producto. */
 function trackProductView() {
@@ -421,6 +423,17 @@ function initAddToCart(signal: AbortSignal) {
   const radios = $$<HTMLInputElement>('input[name="talle"]');
   const hint = $('[data-size-hint]');
   const done = $('[data-cart-added]');
+  const cartLink = $('[data-cart-link]');
+  const cartLinkCount = $('[data-cart-link-count]');
+
+  // El enlace a la bolsa vive mientras haya algo dentro, aunque se haya
+  // agregado en otra visita: es el paso siguiente y no debe esconderse.
+  const refreshCartLink = () => {
+    const n = cartCount();
+    if (cartLinkCount) cartLinkCount.textContent = String(n);
+    cartLink?.toggleAttribute('hidden', n === 0);
+  };
+  refreshCartLink();
 
   button.addEventListener(
     'click',
@@ -448,10 +461,23 @@ function initAddToCart(signal: AbortSignal) {
         value: price,
         currency: 'USD',
       });
-      done?.removeAttribute('hidden');
+
+      // Cuánto lleva acumulado de esta pieza/talle, para que el cliente vea
+      // que el clic repetido sí suma.
+      if (done) {
+        const qty = cartQty(slug, size);
+        const unidades = qty === 1 ? '1 UNIDAD' : `${qty} UNIDADES`;
+        done.textContent = size
+          ? `AGREGADO — ${unidades} EN TALLE ${size}`
+          : `AGREGADO — ${unidades}`;
+        done.removeAttribute('hidden');
+      }
+      refreshCartLink();
     },
     { signal },
   );
+
+  document.addEventListener('cart:change', refreshCartLink, { signal });
 }
 
 /* ------------------------------------------------------------------

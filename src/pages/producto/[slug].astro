@@ -165,21 +165,13 @@ const jsonLd = JSON.stringify([
                   <button type="button" class="btn btn-ink w-full" data-add-to-cart>
                     AGREGAR A LA BOLSA
                   </button>
-                  <p data-cart-added hidden class="caps text-stone" role="status">
-                    AGREGADO — <a href="/carrito" class="u-link">VER BOLSA →</a>
-                  </p>
-                  {site.whatsappNumber && (
-                    <a
-                      href="#"
-                      class="btn w-full border border-ink"
-                      data-wa-product={title}
-                      data-wa-number={site.whatsappNumber}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      COMPRAR POR WHATSAPP
-                    </a>
-                  )}
+                  {/* Se muestra en cuanto la bolsa tiene algo, no solo al
+                      agregar: el paso siguiente queda siempre a la vista, con
+                      el mismo peso visual que tenía el botón de WhatsApp. */}
+                  <a href="/carrito" class="btn w-full border border-ink" data-cart-link hidden>
+                    VER BOLSA (<span data-cart-link-count>0</span>)
+                  </a>
+                  <p data-cart-added hidden class="caps text-stone" role="status"></p>
                 </>
               )
             }

@@ -4,9 +4,9 @@ import { db, invalidateCache } from '../../lib/db';
 import { getSiteContent } from '../../lib/content';
 import { computeTotals } from '../../lib/totals';
 import { findCoupon } from '../../lib/coupons';
-import { notifyOwner, sendOrderEmail } from '../../lib/notify';
+import { sendNewOrderAdminEmail, sendOrderEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
-import { PROVINCES, siteUrl } from '../../lib/site';
+import { PROVINCES, siteUrl, adminUrl } from '../../lib/site';
 import { readGeo } from '../../lib/geo';
 
 export const prerender = false;
@@ -202,16 +202,25 @@ export const POST: APIRoute = async ({ request }) => {
 
   invalidateCache();
 
-  await notifyOwner(`Nuevo pedido ${code} — $${totals.total.toFixed(2)}`, [
-    `Pedido: ${code}`,
-    `Cliente: ${name} · ${phone} · CI ${cedula}`,
-    `Entrega: ${address}, ${city}, ${province}`,
-    `Total: $${totals.total.toFixed(2)} (envío $${totals.shipping.toFixed(2)}${totals.discount ? `, descuento -$${totals.discount.toFixed(2)}` : ''})`,
-    '',
-    ...validated.map((it) => `· ${it.product_name}${it.size ? ` (${it.size})` : ''} ×${it.quantity}`),
-    '',
-    `Revísalo en el admin → Pedidos web`,
-  ]);
+  // Aviso interno: el pedido completo y el botón que lo abre en el admin.
+  await sendNewOrderAdminEmail({
+    code,
+    total: totals.total,
+    subtotal: totals.subtotal,
+    shipping: totals.shipping,
+    discount: totals.discount,
+    couponCode: coupon && totals.discount > 0 ? coupon.code : null,
+    items: validated.map((it) => ({
+      name: `${it.product_name}${it.size ? ` (${it.size})` : ''}`,
+      qty: it.quantity,
+      amount: it.unit_price * it.quantity,
+    })),
+    customer: { name, phone, email, cedula },
+    delivery: { address, reference: addressReference, city, province },
+    notes: String(customer.notes ?? '').trim(),
+    adminUrl: adminUrl(`/pedidos/${orderId}`),
+    trackUrl: siteUrl(`/pedido/${code}`),
+  });
 
   // Respaldo escrito con datos bancarios y enlace, por si cierra la página.
   // El único WhatsApp automático del flujo sale al subir el comprobante (ver comprobante.ts).

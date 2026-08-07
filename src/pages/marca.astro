@@ -2,15 +2,16 @@
 import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import { campaignImage } from '../lib/images';
-import { waLink } from '../lib/site';
+import { waLink, formatPhone } from '../lib/site';
 import { getSiteContent } from '../lib/content';
+import { cdnImage } from '../lib/cdn';
 
-const atelier = campaignImage('marca');
 const site = await getSiteContent();
+// Imagen subida desde el admin (Contenido → Imagen del manifiesto) o el
+// asset local por defecto, igual que el hero del home.
+const atelier = site.marcaImageUrl ? null : campaignImage('marca');
 const WHATSAPP_NUMBER = site.whatsappNumber;
-const phone = WHATSAPP_NUMBER
-  ? `+${WHATSAPP_NUMBER.slice(0, 3)} ${WHATSAPP_NUMBER.slice(3, 5)} ${WHATSAPP_NUMBER.slice(5, 9)} ${WHATSAPP_NUMBER.slice(9)}`
-  : '';
+const phone = formatPhone(WHATSAPP_NUMBER);
 ---
 
 <Base
@@ -30,12 +31,23 @@ const phone = WHATSAPP_NUMBER
 
       <div class="mt-20 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
         <div class="parallax-frame aspect-[8/5]">
-          <Image
-            src={atelier}
-            alt="El atelier de ENIGMA en penumbra"
-            data-parallax
-            loading="lazy"
-          />
+          {
+            atelier ? (
+              <Image
+                src={atelier}
+                alt="El atelier de ENIGMA en penumbra"
+                data-parallax
+                loading="lazy"
+              />
+            ) : (
+              <img
+                src={cdnImage(site.marcaImageUrl, 1600)}
+                alt="El atelier de ENIGMA en penumbra"
+                data-parallax
+                loading="lazy"
+              />
+            )
+          }
         </div>
         <div class="max-w-md space-y-6 leading-relaxed text-bone/80 lg:pt-10" data-reveal>
           <p>
@@ -47,8 +59,9 @@ const phone = WHATSAPP_NUMBER
             mejoran con el uso y costuras pensadas para durar más que la tendencia.
           </p>
           <p>
-            No hay carrito ni pasarela de pago: cada compra es una conversación. Escribes, eliges,
-            recibes. Así de directo.
+            El pedido se arma en la bolsa y se paga por transferencia: eliges, confirmas y
+            validamos. Si algo no calza, escríbenos y lo resolvemos con una persona, no con un
+            formulario.
           </p>
         </div>
       </div>

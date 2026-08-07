@@ -2,6 +2,13 @@
 import Base from '../../layouts/Base.astro';
 import CampaignEditorial from '../../components/CampaignEditorial.astro';
 import { getCampaignBySlug } from '../../lib/campaigns';
+import { getSiteContent } from '../../lib/content';
+
+// Lookbook apagado desde el admin: también las campañas quedan fuera.
+const { lookbookEnabled } = await getSiteContent();
+if (!lookbookEnabled) {
+  return Astro.redirect('/catalogo', 307);
+}
 
 const { slug } = Astro.params;
 const campaign = slug ? await getCampaignBySlug(slug) : undefined;
