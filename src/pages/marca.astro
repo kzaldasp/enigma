@@ -14,26 +14,33 @@ const phone = formatPhone(WHATSAPP_NUMBER);
 ---
 
 <Base
-  title="Sobre la marca — ENIGMA®"
-  description="ENIGMA es una marca ecuatoriana de gorras. Series cortas, materiales honestos y un canal directo: hablas con quien hace las piezas."
+  title={`${site.marcaSeoTitle} — ENIGMA®`}
+  description={site.marcaSeoDescription}
   headerTheme="dark"
 >
-  <!-- Manifiesto de marca (oscuro) -->
+  <!-- Manifiesto de marca (oscuro). Todo el texto viene del admin →
+       Contenido del sitio → «Página La marca». -->
   <section class="bg-ink pt-36 pb-section text-bone md:pt-48">
     <div class="wrap">
-      <p class="caps mb-8 text-stone" data-reveal>LA MARCA</p>
+      {site.marcaEyebrow && <p class="caps mb-8 text-stone" data-reveal>{site.marcaEyebrow}</p>}
       <h1 class="max-w-5xl font-display text-manifesto tracking-display" data-lines>
-        <span data-line><span class="line-in">Enigma no es un logotipo.</span></span>
-        <span data-line><span class="line-in">Es la decisión de no explicarse:</span></span>
-        <span data-line><span class="line-in">ropa que sostiene la mirada sin devolverla.</span></span>
+        {
+          site.marcaTitleLines.map((line) => (
+            <span data-line>
+              <span class="line-in">{line}</span>
+            </span>
+          ))
+        }
       </h1>
 
-      <div class="mt-20 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
-        <div class="parallax-frame aspect-[8/5]">
-          {
-            atelier ? (
-              // `<img>` directo: el componente <Image> pasa por /_image, que
-              // en producción responde 404 (ver Editorial.astro).
+      <div class="mt-20 grid grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-20">
+        {
+          atelier ? (
+            /* Marcador local: marco fijo con parallax. Es una pieza decorativa
+               de proporción conocida, así que recortarla no pierde nada.
+               `<img>` directo y no <Image>: el componente pasa por /_image,
+               que en producción responde 404 (ver Editorial.astro). */
+            <div class="parallax-frame aspect-[8/5]">
               <img
                 src={atelier.src}
                 width={atelier.width}
@@ -42,30 +49,27 @@ const phone = formatPhone(WHATSAPP_NUMBER);
                 data-parallax
                 loading="lazy"
               />
-            ) : (
+            </div>
+          ) : (
+            /* Foto propia subida desde el admin: manda su proporción real. El
+               marco 8/5 con recorte se comía una vertical (3290×4112 quedaba
+               cortada por arriba y abajo), así que aquí el <img> define su
+               propio alto y se ve completa, sea vertical, cuadrada o
+               horizontal. Se cambia el parallax por un fade: el parallax
+               necesita recortar dentro de un marco de alto fijo, que es
+               justamente lo que causaba el problema. */
+            <div data-reveal>
               <img
-                src={cdnImage(site.marcaImageUrl, 1600)}
-                alt="El atelier de ENIGMA en penumbra"
-                data-parallax
+                src={cdnImage(site.marcaImageUrl, 1800)}
+                alt="El atelier de ENIGMA"
+                class="w-full"
                 loading="lazy"
               />
-            )
-          }
-        </div>
+            </div>
+          )
+        }
         <div class="max-w-md space-y-6 leading-relaxed text-bone/80 lg:pt-10" data-reveal>
-          <p>
-            ENIGMA nace en Quito en 2024. Cada temporada es una serie corta: pocas piezas, pocas
-            unidades, cero reposición. Lo que se agota, se agota.
-          </p>
-          <p>
-            Trabajamos con talleres a menos de veinte kilómetros del estudio, con materiales que
-            mejoran con el uso y costuras pensadas para durar más que la tendencia.
-          </p>
-          <p>
-            El pedido se arma en la bolsa y se paga por transferencia: eliges, confirmas y
-            validamos. Si algo no calza, escríbenos y lo resolvemos con una persona, no con un
-            formulario.
-          </p>
+          {site.marcaParagraphs.map((text) => <p>{text}</p>)}
         </div>
       </div>
     </div>
@@ -121,10 +125,13 @@ const phone = formatPhone(WHATSAPP_NUMBER);
         </div>
       </dl>
 
-      <p class="mt-10 max-w-md text-stone" data-reveal>
-        Respondemos de lunes a sábado, de 09h00 a 19h00. Si una pieza está agotada, escríbenos
-        igual: a veces queda una unidad en el estudio.
-      </p>
+      {
+        site.marcaContactNote && (
+          <p class="mt-10 max-w-md text-stone" data-reveal>
+            {site.marcaContactNote}
+          </p>
+        )
+      }
     </div>
   </section>
 </Base>

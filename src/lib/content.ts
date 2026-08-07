@@ -28,6 +28,13 @@ export type SiteContent = {
   heroImageUrl: string;
   /** Imagen del manifiesto de /marca subida desde el admin; vacío = asset local. */
   marcaImageUrl: string;
+  /* Página /marca — todo editable desde Contenido del sitio. */
+  marcaEyebrow: string;
+  marcaTitleLines: string[];
+  marcaParagraphs: string[];
+  marcaSeoTitle: string;
+  marcaSeoDescription: string;
+  marcaContactNote: string;
   /** Lookbook visible en la tienda (admin → Campañas). */
   lookbookEnabled: boolean;
   /** Costo de envío plano en USD; 0 = gratis. */
@@ -61,6 +68,16 @@ const DEFAULTS: Record<string, string> = {
   font_custom_url: '',
   hero_image_url: '',
   marca_image_url: '',
+  marca_eyebrow: 'LA MARCA',
+  marca_title_lines:
+    'Enigma no es un logotipo.\nEs la decisión de no explicarse:\npiezas que sostienen la mirada sin devolverla.',
+  marca_paragraphs:
+    'ENIGMA nace en Quito en 2024. Cada temporada es una serie corta: pocas piezas, pocas unidades, cero reposición. Lo que se agota, se agota.\n\nTrabajamos con talleres a menos de veinte kilómetros del estudio, con materiales que mejoran con el uso y costuras pensadas para durar más que la tendencia.\n\nEl pedido se arma en la bolsa y se paga por transferencia: eliges, confirmas y validamos. Si algo no calza, escríbenos y lo resolvemos con una persona, no con un formulario.',
+  marca_seo_title: 'Sobre la marca',
+  marca_seo_description:
+    'ENIGMA es una marca ecuatoriana de gorras. Series cortas, materiales honestos y un canal directo: hablas con quien hace las piezas.',
+  marca_contact_note:
+    'Respondemos de lunes a sábado, de 09h00 a 19h00. Si una pieza está agotada, escríbenos igual: a veces queda una unidad en el estudio.',
   // '0' = el lookbook desaparece del menú y /lookbook redirige al catálogo.
   lookbook_enabled: '1',
   shipping_cost: '0',
@@ -102,6 +119,13 @@ export async function getSiteContent(): Promise<SiteContent> {
       fontCustomUrl: map.font_custom_url,
       heroImageUrl: map.hero_image_url,
       marcaImageUrl: map.marca_image_url,
+      marcaEyebrow: map.marca_eyebrow,
+      marcaTitleLines: map.marca_title_lines.split('\n').filter(Boolean),
+      // Doble salto = párrafo nuevo, igual que en los textos legales.
+      marcaParagraphs: map.marca_paragraphs.split(/\n{2,}/).filter(Boolean),
+      marcaSeoTitle: map.marca_seo_title,
+      marcaSeoDescription: map.marca_seo_description,
+      marcaContactNote: map.marca_contact_note,
       lookbookEnabled: map.lookbook_enabled !== '0',
       shippingCost: Number(map.shipping_cost) || 0,
       shippingFreeFrom: Number(map.shipping_free_from) || 0,
