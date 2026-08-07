@@ -1,5 +1,4 @@
 ---
-import { Image } from 'astro:assets';
 import { getCategories } from '../lib/categories';
 import { getProducts } from '../lib/products';
 import { categoryImage } from '../lib/images';
@@ -42,8 +41,12 @@ const blocks = categories
           >
             <div class="zoom-frame aspect-[4/5]">
               {cat.local ? (
-                <Image
-                  src={cat.local}
+                // `<img>` directo: <Image> pasa por /_image, que en producción
+                // responde 404 (ver Editorial.astro).
+                <img
+                  src={cat.local.src}
+                  width={cat.local.width}
+                  height={cat.local.height}
                   alt={`Categoría ${cat.label.toLowerCase()}`}
                   class="h-full w-full object-cover"
                   loading="lazy"

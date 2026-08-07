@@ -58,8 +58,12 @@ const menuItems = [...nav, { label: 'CONTACTO', href: '/marca' }];
       ENIGMA<sup class="text-[0.55em]">®</sup>
     </a>
 
-    <!-- Derecha: contacto + bolsa de compras -->
-    <div class="flex flex-1 items-center justify-end gap-7">
+    <!-- Derecha: contacto + bolsa de compras.
+         `gap-5` en vez de `gap-7`: el área táctil de la bolsa ya aporta 11px
+         de aire por lado, así que con el hueco anterior la bolsa quedaba
+         suelta, desligada del resto del grupo. El `-mr-2` compensa ese mismo
+         acolchado para que el icono cuadre con el margen del sitio. -->
+    <div class="flex flex-1 items-center justify-end gap-5">
       <a
         href="/marca"
         class="u-link caps tap hidden lg:inline-flex"
@@ -70,25 +74,26 @@ const menuItems = [...nav, { label: 'CONTACTO', href: '/marca' }];
       <a
         href="/carrito"
         aria-label="Ver bolsa de compras"
-        class="relative flex min-h-11 min-w-11 items-center justify-center"
+        class="relative -mr-2 flex min-h-11 min-w-11 items-center justify-center"
       >
+        <!-- Trazo 1.5: a 1.2 el icono se perdía sobre la foto del hero.
+             El cuerpo de la bolsa se rellena cuando hay algo dentro
+             (html[data-cart-full] en global.css): el estado se lee de un
+             vistazo, sin depender de alcanzar a leer el número. -->
         <svg
-          width="19"
-          height="21"
+          width="20"
+          height="22"
           viewBox="0 0 19 21"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.2"
+          stroke-width="1.5"
+          stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path d="M2.5 6.5h14l-1.2 12.7a1 1 0 0 1-1 .9H4.7a1 1 0 0 1-1-.9L2.5 6.5Z" />
+          <path data-bag-body d="M2.5 6.5h14l-1.2 12.7a1 1 0 0 1-1 .9H4.7a1 1 0 0 1-1-.9L2.5 6.5Z" />
           <path d="M6.2 6.3a3.3 3.3 0 0 1 6.6 0" />
         </svg>
-        <span
-          data-cart-count
-          hidden
-          class="caps absolute -top-1 -right-1.5 text-[0.65rem] leading-none"
-        ></span>
+        <span data-cart-count hidden class="cart-badge caps"></span>
       </a>
     </div>
   </div>

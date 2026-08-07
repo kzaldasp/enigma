@@ -1,5 +1,4 @@
 ---
-import { Image } from 'astro:assets';
 import { campaignImage } from '../lib/images';
 
 const editorial = campaignImage('editorial');
@@ -9,8 +8,14 @@ const words = phrase.split(' ');
 
 <section class="relative bg-ink text-bone" aria-label="Editorial de campaña">
   <div class="parallax-frame relative h-[88svh] min-h-[min(30rem,100svh)]">
-    <Image
-      src={editorial}
+    <!-- `<img>` directo al asset, no <Image>: en SSR el componente de Astro
+         sirve las imágenes locales por /_image, que en Vercel responde 404
+         (la función no puede pedirse a sí misma por HTTP) y Safari dibuja su
+         icono de imagen rota. Estos assets ya salen hasheados y cacheados. -->
+    <img
+      src={editorial.src}
+      width={editorial.width}
+      height={editorial.height}
       alt="Editorial ENIGMA: figura de pie en un espacio vacío en penumbra"
       data-parallax
       loading="lazy"

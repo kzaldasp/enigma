@@ -1,5 +1,4 @@
 ---
-import { Image } from 'astro:assets';
 import { campaignImage } from '../lib/images';
 import { getSiteContent } from '../lib/content';
 import { cdnImage } from '../lib/cdn';
@@ -19,8 +18,12 @@ const hero = heroImageUrl ? null : campaignImage('hero');
 >
   {
     hero ? (
-      <Image
-        src={hero}
+      // `<img>` directo: el componente <Image> pasa por /_image, que en
+      // producción responde 404 (ver Editorial.astro).
+      <img
+        src={hero.src}
+        width={hero.width}
+        height={hero.height}
         alt="Campaña ENIGMA: figura en penumbra dentro del estudio"
         data-parallax
         loading="eager"

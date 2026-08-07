@@ -373,7 +373,11 @@
    Header — transparente arriba, fondo hueso al hacer scroll
 ----------------------------------------------------------------- */
 #site-header {
+  /* `--header-inv` es el color contrario al del texto del header: lo necesita
+     el contador de la bolsa, que se pinta en negativo sobre el color de
+     primer plano y tiene que seguir los cuatro estados del header. */
   --header-fg: var(--color-ink);
+  --header-inv: var(--color-bone);
   color: var(--header-fg);
   background-color: transparent;
   border-bottom: 1px solid transparent;
@@ -384,13 +388,16 @@
 }
 #site-header[data-theme="dark"] {
   --header-fg: var(--color-bone);
+  --header-inv: var(--color-ink);
 }
 html.is-scrolled #site-header {
   --header-fg: var(--color-ink);
+  --header-inv: var(--color-bone);
   background-color: var(--color-bone);
   border-bottom-color: var(--color-line);
 }
 html[data-menu-open] #site-header {
+  --header-inv: var(--color-ink);
   --header-fg: var(--color-bone);
   background-color: transparent;
   border-bottom-color: transparent;
@@ -399,6 +406,35 @@ html[data-menu-open] body {
   overflow: hidden;
   /* Evita que el gesto "arrastre" la página de fondo en iOS/Android. */
   overscroll-behavior: none;
+}
+
+/* Bolsa con contenido: el cuerpo del icono se rellena y el contador pasa a
+   negativo. `html[data-cart-full]` lo pone refreshCartBadge() en app.ts. */
+html[data-cart-full] #site-header [data-bag-body] {
+  fill: currentColor;
+}
+#site-header [data-bag-body] {
+  fill: transparent;
+  transition: fill 0.3s var(--ease-out-soft);
+}
+.cart-badge {
+  position: absolute;
+  top: -0.15rem;
+  right: -0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding-inline: 0.22rem;
+  border-radius: 999px;
+  /* En negativo sobre el color del header: legible sobre el hero oscuro y
+     sobre el fondo hueso, sin añadir un color nuevo a la paleta. */
+  background-color: var(--header-fg);
+  color: var(--header-inv);
+  font-size: 0.6rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
 }
 
 /* Overlay del menú: la lista de enlaces se desplaza dentro de su propia

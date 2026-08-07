@@ -1,5 +1,4 @@
 ---
-import { Image } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import CampaignEditorial from '../../components/CampaignEditorial.astro';
 import { campaignImage } from '../../lib/images';
@@ -70,8 +69,12 @@ const description = current?.description
               return (
                 <figure class={`flex w-full flex-col ${look.width} ${look.align}`} data-reveal>
                   <div class={`parallax-frame ${portrait ? 'aspect-[3/4]' : 'aspect-[3/2]'}`}>
-                    <Image
-                      src={img}
+                    {/* `<img>` directo: <Image> pasa por /_image, que en
+                        producción responde 404 (ver Editorial.astro). */}
+                    <img
+                      src={img.src}
+                      width={img.width}
+                      height={img.height}
                       alt={`Look ${String(i + 1).padStart(2, '0')}: ${look.piece.toLowerCase()} en modelo`}
                       data-parallax
                       loading={i === 0 ? 'eager' : 'lazy'}

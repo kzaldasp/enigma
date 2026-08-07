@@ -7,7 +7,7 @@ export const SITE_NAME = 'ENIGMA';
 
 /** Fallback estático; el valor editable viene de getSiteContent(). */
 export const SITE_DESCRIPTION =
-  'ENIGMA® — ropa contemporánea. Piezas limitadas, producción consciente. Lo esencial no se explica: se lleva puesto.';
+  'ENIGMA® — marca ecuatoriana de gorras. Series cortas y numeradas: lo que se agota no vuelve. Envíos a todo el Ecuador.';
 
 /** Las categorías son editables desde el admin — ver src/lib/categories.ts. */
 export type Category = string;

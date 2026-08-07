@@ -1,5 +1,4 @@
 ---
-import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import { campaignImage } from '../lib/images';
 import { waLink, formatPhone } from '../lib/site';
@@ -16,7 +15,7 @@ const phone = formatPhone(WHATSAPP_NUMBER);
 
 <Base
   title="Sobre la marca — ENIGMA®"
-  description="ENIGMA es un estudio de ropa contemporánea. Series cortas, materiales honestos y un canal directo: hablas con quien hace la ropa."
+  description="ENIGMA es una marca ecuatoriana de gorras. Series cortas, materiales honestos y un canal directo: hablas con quien hace las piezas."
   headerTheme="dark"
 >
   <!-- Manifiesto de marca (oscuro) -->
@@ -33,8 +32,12 @@ const phone = formatPhone(WHATSAPP_NUMBER);
         <div class="parallax-frame aspect-[8/5]">
           {
             atelier ? (
-              <Image
-                src={atelier}
+              // `<img>` directo: el componente <Image> pasa por /_image, que
+              // en producción responde 404 (ver Editorial.astro).
+              <img
+                src={atelier.src}
+                width={atelier.width}
+                height={atelier.height}
                 alt="El atelier de ENIGMA en penumbra"
                 data-parallax
                 loading="lazy"

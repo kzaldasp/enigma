@@ -403,9 +403,14 @@ function initProduct(signal: AbortSignal) {
    Bolsa: badge del header + botón "agregar" en producto
 ------------------------------------------------------------------- */
 function refreshCartBadge() {
+  const n = cartCount();
+  // Rellena el icono de la bolsa mientras haya algo dentro (ver .cart-badge y
+  // [data-bag-body] en global.css). Va en <html> para que aplique aunque el
+  // header todavía no exista en el DOM.
+  document.documentElement.toggleAttribute('data-cart-full', n > 0);
+
   const badge = $('[data-cart-count]');
   if (!badge) return;
-  const n = cartCount();
   badge.textContent = n > 9 ? '9+' : String(n);
   badge.toggleAttribute('hidden', n === 0);
 }
