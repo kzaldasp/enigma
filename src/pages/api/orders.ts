@@ -3,7 +3,13 @@ import { randomUUID } from 'node:crypto';
 import { db, invalidateCache } from '../../lib/db';
 import { getSiteContent } from '../../lib/content';
 import { computeTotals } from '../../lib/totals';
-import { findCoupon } from '../../lib/coupons';
+import {
+  findCoupon,
+  isExhausted,
+  customerUses,
+  reserveCouponUse,
+  releaseCouponUse,
+} from '../../lib/coupons';
 import { sendNewOrderAdminEmail, sendOrderEmail } from '../../lib/notify';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
 import { PROVINCES, siteUrl, adminUrl } from '../../lib/site';
@@ -143,6 +149,36 @@ export const POST: APIRoute = async ({ request }) => {
     freeShippingFrom: site.shippingFreeFrom,
     coupon,
   });
+
+  // El cupón solo se "gasta" si de verdad descontó algo: bajo la compra
+  // mínima no aplica y el pedido se guarda sin código, como siempre.
+  const couponCode = coupon && totals.discount > 0 ? coupon.code : null;
+
+  if (coupon && couponCode) {
+    if (isExhausted(coupon)) {
+      return json({ error: `El cupón ${coupon.code} ya no está disponible` }, 409);
+    }
+    if (
+      coupon.maxPerCustomer > 0 &&
+      (await customerUses(coupon.code, cedula)) >= coupon.maxPerCustomer
+    ) {
+      return json(
+        {
+          error:
+            coupon.maxPerCustomer === 1
+              ? `El cupón ${coupon.code} es de un solo uso por persona y ya lo usaste`
+              : `Ya usaste el cupón ${coupon.code} las ${coupon.maxPerCustomer} veces permitidas`,
+        },
+        409,
+      );
+    }
+    // Reserva atómica: si otro pedido se llevó el último uso mientras el
+    // cliente llenaba el formulario, aquí se entera y nadie pasa del tope.
+    if (!(await reserveCouponUse(coupon.code))) {
+      return json({ error: `El cupón ${coupon.code} ya no está disponible` }, 409);
+    }
+  }
+
   // Código definitivo (EN-000001) se arma después del insert, a partir del id.
   // Se usa un placeholder único mientras tanto para no chocar con el UNIQUE NOT NULL.
   const tempCode = `TMP-${randomUUID()}`;
@@ -152,53 +188,61 @@ export const POST: APIRoute = async ({ request }) => {
   const clean = (v: unknown, max = 60) => String(v ?? '').trim().toLowerCase().slice(0, max) || null;
   const geo = readGeo(request);
 
-  const orderRes = await db().batch(
-    [
-      {
-        sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, cedula, province, address, city, address_reference, notes, total, shipping, coupon_code, discount, source, medium, campaign, province_geo)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          tempCode,
-          name,
-          phone,
-          email,
-          cedula,
-          province,
-          address,
-          city,
-          addressReference,
-          String(customer.notes ?? '').trim() || null,
-          totals.total,
-          totals.shipping,
-          coupon && totals.discount > 0 ? coupon.code : null,
-          totals.discount,
-          clean(attr?.source, 40),
-          clean(attr?.medium, 40),
-          clean(attr?.campaign),
-          geo.province || null,
-        ],
-      },
-    ],
-    'write',
-  );
-  const orderId = Number(orderRes[0].lastInsertRowid);
-  const code = orderCode(orderId);
+  let orderId: number;
+  let code: string;
+  try {
+    const orderRes = await db().batch(
+      [
+        {
+          sql: `INSERT INTO orders (code, customer_name, customer_phone, customer_email, cedula, province, address, city, address_reference, notes, total, shipping, coupon_code, discount, source, medium, campaign, province_geo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            tempCode,
+            name,
+            phone,
+            email,
+            cedula,
+            province,
+            address,
+            city,
+            addressReference,
+            String(customer.notes ?? '').trim() || null,
+            totals.total,
+            totals.shipping,
+            couponCode,
+            totals.discount,
+            clean(attr?.source, 40),
+            clean(attr?.medium, 40),
+            clean(attr?.campaign),
+            geo.province || null,
+          ],
+        },
+      ],
+      'write',
+    );
+    orderId = Number(orderRes[0].lastInsertRowid);
+    code = orderCode(orderId);
 
-  await db().batch(
-    [
-      { sql: `UPDATE orders SET code = ? WHERE id = ?`, args: [code, orderId] },
-      ...validated.map((it) => ({
-        sql: `INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price)
-              VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [orderId, it.product_id, it.product_name, it.size, it.quantity, it.unit_price],
-      })),
-      {
-        sql: `INSERT INTO order_events (order_id, event) VALUES (?, 'creado')`,
-        args: [orderId],
-      },
-    ],
-    'write',
-  );
+    await db().batch(
+      [
+        { sql: `UPDATE orders SET code = ? WHERE id = ?`, args: [code, orderId] },
+        ...validated.map((it) => ({
+          sql: `INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+          args: [orderId, it.product_id, it.product_name, it.size, it.quantity, it.unit_price],
+        })),
+        {
+          sql: `INSERT INTO order_events (order_id, event) VALUES (?, 'creado')`,
+          args: [orderId],
+        },
+      ],
+      'write',
+    );
+  } catch (err) {
+    // El pedido no llegó a guardarse: el uso reservado vuelve al cupón.
+    if (couponCode) await releaseCouponUse(couponCode);
+    throw err;
+  }
 
   invalidateCache();
 
@@ -209,7 +253,7 @@ export const POST: APIRoute = async ({ request }) => {
     subtotal: totals.subtotal,
     shipping: totals.shipping,
     discount: totals.discount,
-    couponCode: coupon && totals.discount > 0 ? coupon.code : null,
+    couponCode,
     items: validated.map((it) => ({
       name: `${it.product_name}${it.size ? ` (${it.size})` : ''}`,
       qty: it.quantity,

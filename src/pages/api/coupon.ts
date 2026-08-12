@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { findCoupon } from '../../lib/coupons';
+import { findCoupon, isExhausted } from '../../lib/coupons';
 import { rateLimit, clientIp } from '../../lib/ratelimit';
 
 export const prerender = false;
@@ -17,6 +17,9 @@ export const GET: APIRoute = async ({ request, url }) => {
   }
   const coupon = await findCoupon(url.searchParams.get('code') ?? '');
   if (!coupon) return json({ error: 'Cupón no válido' }, 404);
+  // El límite por cliente no se puede comprobar aquí (todavía no hay cédula);
+  // se verifica al crear el pedido, en /api/orders.
+  if (isExhausted(coupon)) return json({ error: 'Este cupón ya no está disponible' }, 409);
   return json({
     code: coupon.code,
     type: coupon.type,
